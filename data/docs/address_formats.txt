@@ -1,0 +1,28 @@
+Blockchain Address Formats
+
+Ethereum and EVM-Compatible Chains (Ethereum, Base, Polygon, Arbitrum, Optimism):
+- Format: 0x followed by 40 hexadecimal characters
+- Example: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+- Total length: 42 characters including the 0x prefix
+- Case-insensitive, but EIP-55 checksummed mixed-case versions are preferred
+- All EVM chains share the same address format — the same address can exist on Ethereum and Base simultaneously
+
+Solana:
+- Format: Base58-encoded Ed25519 public key
+- Example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+- Length: typically 32-44 characters
+- Does NOT start with 0x
+- Cannot receive ERC-20 tokens directly — requires a bridge
+
+Bitcoin:
+- Legacy format starts with 1 (e.g. 1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf)
+- P2SH format starts with 3
+- Bech32 format starts with bc1
+- Bitcoin does not support USDC or any EVM token
+
+CRITICAL SAFETY RULES:
+- Sending ERC-20 USDC directly to a Solana address will result in PERMANENT LOSS OF FUNDS.
+- Sending SPL USDC to an Ethereum address will result in PERMANENT LOSS OF FUNDS.
+- Cross-chain transfers always require a bridge protocol — you cannot directly send between incompatible chains.
+- Never type addresses manually — always copy and paste and verify at least the first and last 6 characters.
+- Clipboard hijacking malware can silently replace a copied address with an attacker's address. Always verify on-screen.
