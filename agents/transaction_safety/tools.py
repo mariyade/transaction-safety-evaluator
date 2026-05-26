@@ -9,7 +9,8 @@ logger = get_logger(__name__)
 RISKY_PATTERNS = [
     (r"unlimited|max uint256", "CRITICAL: Unlimited token approval detected."),
     (r"setapprovalforall", "CRITICAL: setApprovalForAll — commonly used in phishing attacks."),
-    (r"airdrop.*claim|free.*mint", "HIGH: Airdrop/free mint pattern — common phishing."),
+    (r"airdrop.*claim|free.*mint|claim.*free|free.*usdc|free.*token", "HIGH: Unsolicited free token claim — common phishing."),
+    (r"approv.*contract|link.*approv|sign.*contract", "CRITICAL: Unsolicited contract approval request — common drain attack."),
     (r"double|2x|guaranteed return", "CRITICAL: Guaranteed return promise — scam pattern."),
     (r"send.*first|deposit.*first", "CRITICAL: 'Send first to receive' — always a scam."),
 ]

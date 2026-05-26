@@ -22,12 +22,14 @@ class AddressInput(BaseAgentInput):
     @classmethod
     def validate_address_format(cls, address: str) -> str:
         address = address.strip()
-        if address.startswith("0x"):
-            if not re.fullmatch(r"0x[0-9a-fA-F]{40}", address):
-                raise ValueError(
-                    "Ethereum-style address must be '0x' followed by exactly 40 hex characters"
-                )
-        return address
+        if re.fullmatch(r"0x[0-9a-fA-F]{40}", address):
+            return address
+        if re.fullmatch(r"[1-9A-HJ-NP-Za-km-z]{32,44}", address):
+            return address
+        raise ValueError(
+            "Address must be a valid Ethereum address (0x + 40 hex chars) "
+            "or Solana address (32-44 base58 chars)"
+        )
 
     @field_validator("chain")
     @classmethod
@@ -68,5 +70,5 @@ class RetrieveDocsArgs(BaseToolArgs):
 
 class AssessRiskArgs(BaseToolArgs):
     address: str = Field(..., description="The address to assess")
-    chain: str = Field(..., description="The chain this address belongs to")
+    chain: str = Field("unknown", description="The chain this address belongs to")
     context: Optional[str] = Field(None, description="Any additional context retrieved from docs")

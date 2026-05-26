@@ -10,3 +10,8 @@ langchain-community
 langchain-text-splitters
 langchain-core
 chromadb
+presidio-analyzer
+presidio-anonymizer
+spacy
+transformers
+torch

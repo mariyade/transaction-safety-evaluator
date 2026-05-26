@@ -23,10 +23,14 @@ def _load_documents() -> list[Document]:
 
 
 def _build_retriever():
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    if os.path.exists(PERSIST_DIR):
+        vectorstore = Chroma(persist_directory=PERSIST_DIR, embedding_function=embeddings)
+        if vectorstore._collection.count() > 0:
+            return vectorstore.as_retriever(search_kwargs={"k": 3})
     documents = _load_documents()
     splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
     chunks = splitter.split_documents(documents)
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     vectorstore = Chroma.from_documents(chunks, embeddings, persist_directory=PERSIST_DIR)
     return vectorstore.as_retriever(search_kwargs={"k": 3})
 
