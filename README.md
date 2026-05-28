@@ -1,7 +1,9 @@
 # AI Evaluation Framework
 
+![Guardrails Pipeline](docs/guardrails_pipeline.png)
+
 A customisable evaluation framework for AI agents and RAG pipelines.
-Uses Pydantic for structured output validation, Guardrails for safety checks, and GitHub Actions for CI.
+Uses Pydantic for structured output validation, tool calling, RAG, and guardrails for runtime safety checks.
 
 The `transaction_safety` agent is the reference implementation.
 
@@ -26,14 +28,15 @@ ai_evaluation_framework/
 │   └── transaction_safety/            ← reference implementation
 │       ├── config.py                  ← MODEL, N_RETRY (overrides core defaults via .env)
 │       ├── prompts.py                 ← SYSTEM_PROMPT, build_structured_output_prompt()
-│       ├── tools.py                   ← TOOLS_SCHEMA, RISKY_PATTERNS, tool functions
+│       ├── tools.py                   ← tool registry, schemas, RISKY_PATTERNS, tool functions
 │       ├── schemas.py                 ← AddressInput, AddressValidationResult, tool arg schemas
 │       ├── knowledge_base.py          ← ChromaDB + LangChain RAG over data/docs/
 │       ├── agent.py                   ← TransactionSafetyAgent (clean class only)
 │       └── guardrails/
 │           ├── crypto_secrets_guard.py  ← regex: private keys, seed phrases
 │           ├── prompt_injection_guard.py← keyword: prompt hijacking attempts
-│           └── verdict_guard.py        ← output: FLAGGED must have risk factors, confidence floor
+│           ├── hallucination_guard.py   ← output: contradiction checks against retrieved context
+│           └── verdict_guard.py         ← output: vague risk factors and confidence floor
 │
 ├── data/
 │   └── docs/                          ← knowledge base (address_formats.txt etc.)
@@ -62,7 +65,7 @@ All configuration is in `.env`. The framework reads it automatically via `python
 | Variable | Default | Description |
 |---|---|---|
 | `OPENAI_API_KEY` | — | Required |
-| `DEFAULT_MODEL` | `gpt-4o-mini` | Model used by all agents unless overridden |
+| `DEFAULT_MODEL` | `gpt-4o-mini` | Model used by all agents unless overridden; blank values fall back to the default |
 | `DEFAULT_N_RETRY` | `5` | Retry attempts for Pydantic validation failures |
 | `TRANSACTION_SAFETY_MODEL` | `DEFAULT_MODEL` | Override model for this agent only |
 | `TRANSACTION_SAFETY_N_RETRY` | `DEFAULT_N_RETRY` | Override retries for this agent only |
@@ -72,6 +75,7 @@ You can also override the model at instantiation without touching `.env`:
 ```python
 agent = TransactionSafetyAgent()                  # uses .env or default
 agent = TransactionSafetyAgent(model="gpt-4o")    # override at runtime
+agent = TransactionSafetyAgent(max_tool_rounds=3) # stop repeated tool loops earlier
 ```
 
 ---
@@ -86,7 +90,7 @@ agents/
     __init__.py
     config.py          ← set MODEL + N_RETRY, add agent-specific env vars
     prompts.py         ← write SYSTEM_PROMPT + build_structured_output_prompt()
-    tools.py           ← define TOOLS_SCHEMA + tool functions
+    tools.py           ← define tool registry + tool functions
     schemas.py         ← define YourInput, YourOutput, tool arg schemas
     knowledge_base.py  ← set up RAG if needed (or delete if not)
     agent.py           ← implement YourAgent(BaseAgent)
@@ -116,13 +120,13 @@ Follow this order for every new agent:
 1. **`schemas.py`** — define input/output/tool arg models; add `field_validator` and `model_validator` for all constraints
 2. **`config.py`** — set `MODEL` and `N_RETRY`; add any agent-specific env vars
 3. **`prompts.py`** — write `SYSTEM_PROMPT` and `build_structured_output_prompt()`
-4. **`tools.py`** — define `TOOLS_SCHEMA` and tool functions; `handle_tool_call` validates args via Pydantic
+4. **`tools.py`** — define the tool registry and tool functions; `handle_tool_call` validates args via Pydantic
 5. **`knowledge_base.py`** — set up ChromaDB + LangChain RAG over `data/docs/`; delete if no RAG needed
 6. **`agent.py`** — implement `YourAgent(BaseAgent)`; wire tool loop and `validate_llm_response`
 7. **`tests/`** — unit tests for schemas and validator; integration tests for the agent (requires API key)
 8. **Guardrails** — add input guards (prompt injection, PII) and output guards (hallucination, grounding)
-9. **GitHub Actions** — CI workflow that runs tests on every PR
-10. **Phoenix tracing** — add last, once everything else is stable
+9. **CI** — add a workflow that runs the offline suite on every PR
+10. **Tracing** — add observability once everything else is stable
 
 ---
 
@@ -149,7 +153,7 @@ Tests are split into four layers. Each layer has a distinct scope, cost, and API
 **Rules:**
 - Unit tests must never make network calls or import OpenAI
 - Integration tests are auto-skipped if `OPENAI_API_KEY` is not set
-- Guardrails and evaluation tests are marked and excluded from the default CI run until those layers are built
+- Use markers to choose cost and scope: `unit`, `guardrails`, `integration`, and `evaluation`
 - All tests use real pytest files — no YAML, no custom DSL
 
 ### Commands
@@ -185,11 +189,11 @@ pytest -m evaluation
 |---|---|
 | `framework/core/config.py` | `OPENAI_API_KEY`, `DEFAULT_MODEL`, `DEFAULT_N_RETRY` |
 | `framework/core/schemas.py` | `BaseAgentInput` (+ `request_id`, `timestamp`), `FreeTextInput` (+ `text`), `BaseAgentOutput` (+ `verdict`, `confidence`), `BaseToolArgs` |
-| `framework/core/base_agent.py` | `BaseAgent` — shared OpenAI client, `_call_llm()`, `_run_tool_loop()`; agents implement `system_prompt`, `tools_schema`, `_handle_tool_call()`, `run()` |
+| `framework/core/base_agent.py` | `BaseAgent` — shared OpenAI client, `_call_llm()`, bounded `_run_tool_loop()`; agents implement `system_prompt`, `tools_schema`, `_handle_tool_call()`, `run()` |
 | `framework/core/pydantic_validator.py` | `validate_with_model()`, `create_retry_prompt()`, `validate_llm_response()` |
 | `framework/core/logger.py` | `get_logger(__name__)` — call in any module to get a named, pre-configured logger |
 
-Logs are written to both stdout and a file. Default file path is `logs/agent.log` (created automatically, excluded from git).
+Logs are written to both stdout and a timestamped file in `logs/` by default.
 
 | Variable | Default | Description |
 |---|---|---|
@@ -202,7 +206,7 @@ Set `LOG_LEVEL=DEBUG` to see full LLM prompts and responses.
 
 ## Guardrails
 
-Guardrails run before and after the LLM — the agent returns `(None, error_message)` if any guard fires. No exception is raised; the caller decides what to do.
+Guardrails run before and after the LLM. Input guards return `(None, error_message)` before any model call. Output and tool-loop failures return an `ESCALATE` result so callers still receive structured output.
 
 ### Input guards (run before the LLM call)
 
@@ -212,11 +216,12 @@ Guardrails run before and after the LLM — the agent returns `(None, error_mess
 | `PIIGuard` | `framework/core/guardrails/` | Names, emails, phones, SSN, IBAN — uses Microsoft Presidio. Reusable by any agent. |
 | `CryptoSecretsGuard` | `agents/transaction_safety/guardrails/` | Ethereum/WIF/Solana private keys (regex), BIP-39 seed phrases (12/15/18/21/24 consecutive words) |
 
-### Output guard (runs after structured output is validated)
+### Output guards (run after structured output is validated)
 
 | Guard | Location | What it checks |
 |---|---|---|
-| `VerdictGuard` | `agents/transaction_safety/guardrails/` | FLAGGED must have ≥1 risk factor with non-trivial description; FLAGGED confidence must be ≥ 0.4 |
+| `HallucinationGuard` | `agents/transaction_safety/guardrails/` | Detects contradictions between LLM output and retrieved docs using NLI (contradiction score threshold) |
+| `VerdictGuard` | `agents/transaction_safety/guardrails/` | FLAGGED risk factor descriptions must be non-trivial; FLAGGED confidence must be ≥ 0.4 |
 
 ### Setup
 
@@ -243,7 +248,7 @@ The evaluation layer measures agent quality against a golden set of known inputs
 
 ### Two types of evals
 
-**Code-based evals** — deterministic, no API calls, fast. Computed by comparing predicted vs. expected verdicts across the golden set.
+**Code-based evals** — metric checks over a golden set. They call the agent to collect predictions, so they require the same OpenAI setup as integration tests.
 
 | Metric | What it measures |
 |---|---|
@@ -289,4 +294,6 @@ Both eval types require a golden set: a list of inputs with expected verdicts. T
 
 ## TODO
 
-- `test_knowledge_base.py` — retrieval-only tests using the RAG QA pairs from the original repo; query ChromaDB directly and assert reference keywords appear in retrieved chunks (no LLM required, fast and deterministic)
+- Expand the golden set in `test_code_evals.py` as the agent handles more edge cases
+- Add confusion matrix logging to the code evals output
+- Overview architecture diagram — one level up, showing runtime pipeline + offline evaluation layer together

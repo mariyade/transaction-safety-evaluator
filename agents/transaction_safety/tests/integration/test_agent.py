@@ -7,7 +7,7 @@ from framework.core.schemas import FreeTextInput
 pytestmark = pytest.mark.integration
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def agent():
     return TransactionSafetyAgent()
 

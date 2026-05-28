@@ -10,8 +10,8 @@ agent = TransactionSafetyAgent()
 STRUCTURED_CASES = [
     AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"),
     AddressInput(address="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", chain="solana"),
-]
 
+]
 
 COMPLEX_CASES = [
     FreeTextInput(text="Can I send USDC from Ethereum to a Solana address 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM?"),
@@ -19,10 +19,10 @@ COMPLEX_CASES = [
     FreeTextInput(text="Someone sent me a link to claim free USDC by approving a contract. Should I do it?"),
 ]
 
-for input in COMPLEX_CASES:
-    label = getattr(input, "address", None) or input.text[:60]
+for case in COMPLEX_CASES:
+    label = getattr(case, "address", None) or case.text[:60]
     logger.info("=== %s ===", label)
-    result, error = agent.run(input)
+    result, error = agent.run(case)
     if error:
         logger.error("result: %s", error)
     else:

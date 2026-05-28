@@ -2,6 +2,8 @@ import json
 import pytest
 
 from agents.transaction_safety.schemas import AddressValidationResult
+
+pytestmark = pytest.mark.unit
 from framework.core.pydantic_validator import create_retry_prompt, validate_llm_response, validate_with_model
 
 VALID_RESPONSE = json.dumps({

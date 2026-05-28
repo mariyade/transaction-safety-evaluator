@@ -3,6 +3,8 @@ from pydantic import ValidationError
 
 from agents.transaction_safety.schemas import AddressInput, AddressValidationResult, RiskFactor
 
+pytestmark = pytest.mark.unit
+
 
 class TestAddressInput:
     def test_valid_ethereum_address(self):

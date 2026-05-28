@@ -10,7 +10,6 @@ class VerdictGuard:
     """Output guard for AddressValidationResult.
 
     Checks rules that go beyond what Pydantic enforces at parse time:
-    - FLAGGED verdict must carry at least one risk_factor
     - Risk factor descriptions must be non-trivial
     - Confidence must be plausible for the verdict
     """
@@ -23,12 +22,6 @@ class VerdictGuard:
             )
 
         if result.verdict == "FLAGGED":
-            if not result.risk_factors:
-                logger.warning("output guard: FLAGGED verdict with no risk factors")
-                return GuardResult(
-                    passed=False,
-                    error="FLAGGED verdict must include at least one risk factor",
-                )
             for rf in result.risk_factors:
                 if len(rf.description.strip()) < 10:
                     logger.warning("output guard: risk factor description too short — '%s'", rf.description)

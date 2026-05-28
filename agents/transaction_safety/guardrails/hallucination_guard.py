@@ -14,6 +14,10 @@ def _split_into_claims(text: str) -> list[str]:
     return [s for s in sentences if len(s) >= _MIN_CLAIM_LENGTH]
 
 
+def _split_context(context: str) -> list[str]:
+    return [chunk.strip() for chunk in context.split("\n\n") if chunk.strip()]
+
+
 class HallucinationGuard:
     """Checks output reasoning against context using NLI.
 
@@ -54,37 +58,40 @@ class HallucinationGuard:
 
         return _predict
 
+    def _find_contradiction(self, chunks: list[str], claims: list[str]) -> tuple[str, float] | None:
+        for chunk in chunks:
+            for claim in claims:
+                scores = self._nli_fn(chunk, claim)
+                contradiction_score = scores.get("contradiction", 0.0)
+                if contradiction_score >= self._threshold:
+                    return claim, contradiction_score
+        return None
+
     def check(self, reasoning: str, context: str) -> GuardResult:
         """Check reasoning against context.
 
         context may be a single string or newline-separated chunks.
         Each chunk is checked independently to keep NLI inputs short.
         """
-        chunks = [c.strip() for c in context.split("\n\n") if c.strip()]
-        if not chunks:
-            return GuardResult(passed=True)
-
+        chunks = _split_context(context)
         claims = _split_into_claims(reasoning)
-        if not claims:
+        if not chunks or not claims:
             return GuardResult(passed=True)
 
-        for chunk in chunks:
-            for claim in claims:
-                scores = self._nli_fn(chunk, claim)
-                contradiction_score = scores.get("contradiction", 0.0)
+        contradiction = self._find_contradiction(chunks, claims)
+        if contradiction is None:
+            return GuardResult(passed=True)
 
-                if contradiction_score >= self._threshold:
-                    logger.warning(
-                        "hallucination detected — contradiction score=%.2f: '%s'",
-                        contradiction_score,
-                        claim[:100],
-                    )
-                    return GuardResult(
-                        passed=False,
-                        error=(
-                            f"Output contradicts retrieved context "
-                            f"(score={contradiction_score:.2f}): '{claim[:80]}'"
-                        ),
-                    )
-
-        return GuardResult(passed=True)
+        claim, score = contradiction
+        logger.warning(
+            "hallucination detected — contradiction score=%.2f: '%s'",
+            score,
+            claim[:100],
+        )
+        return GuardResult(
+            passed=False,
+            error=(
+                f"Output contradicts retrieved context "
+                f"(score={score:.2f}): '{claim[:80]}'"
+            ),
+        )

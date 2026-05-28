@@ -16,6 +16,12 @@ _WIF_KEY = re.compile(r'\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b')
 # Solana addresses are 32-44 chars, so this range avoids false positives.
 _SOL_PRIVATE_KEY = re.compile(r'\b[1-9A-HJ-NP-Za-km-z]{86,88}\b')
 
+_PRIVATE_KEY_PATTERNS = [
+    ("Ethereum/EVM", _ETH_PRIVATE_KEY),
+    ("WIF", _WIF_KEY),
+    ("Solana", _SOL_PRIVATE_KEY),
+]
+
 # Matches a single pure lowercase word of 3-8 letters (BIP-39 word shape)
 _BIP39_WORD = re.compile(r'^[a-z]{3,8}$')
 
@@ -47,17 +53,10 @@ class CryptoSecretsGuard:
     """
 
     def check(self, text: str) -> GuardResult:
-        if _ETH_PRIVATE_KEY.search(text):
-            logger.warning("potential Ethereum/EVM private key in input")
-            return GuardResult(passed=False, error="Potential private key detected in input")
-
-        if _WIF_KEY.search(text):
-            logger.warning("potential WIF private key in input")
-            return GuardResult(passed=False, error="Potential private key detected in input")
-
-        if _SOL_PRIVATE_KEY.search(text):
-            logger.warning("potential Solana private key in input")
-            return GuardResult(passed=False, error="Potential private key detected in input")
+        for key_type, pattern in _PRIVATE_KEY_PATTERNS:
+            if pattern.search(text):
+                logger.warning("potential %s private key in input", key_type)
+                return GuardResult(passed=False, error="Potential private key detected in input")
 
         if _contains_seed_phrase(text):
             logger.warning("potential BIP-39 seed phrase in input")

@@ -35,13 +35,16 @@ class PIIGuard:
         self._entities = entities or DEFAULT_ENTITIES
         self._score_threshold = score_threshold
 
-    def check(self, text: str) -> GuardResult:
-        results = self._analyzer.analyze(
+    def _analyze(self, text: str):
+        return self._analyzer.analyze(
             text=text,
             language="en",
             entities=self._entities,
             score_threshold=self._score_threshold,
         )
+
+    def check(self, text: str) -> GuardResult:
+        results = self._analyze(text)
         if results:
             found = sorted({r.entity_type for r in results})
             logger.warning("PII detected in input: %s", found)
@@ -50,12 +53,7 @@ class PIIGuard:
 
     def anonymize(self, text: str) -> str:
         """Replace detected PII with type placeholders, e.g. <PERSON>."""
-        results = self._analyzer.analyze(
-            text=text,
-            language="en",
-            entities=self._entities,
-            score_threshold=self._score_threshold,
-        )
+        results = self._analyze(text)
         if not results:
             return text
         return self._anonymizer.anonymize(text=text, analyzer_results=results).text

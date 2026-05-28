@@ -67,7 +67,6 @@ def validate_llm_response(
     call_llm_fn is injected so this works with any LLM provider.
     """
     response_content = call_llm_fn(prompt)
-    current_prompt = prompt
 
     for attempt in range(n_retry + 1):
         validated_data, validation_error = validate_with_model(data_model, response_content)
@@ -76,13 +75,12 @@ def validate_llm_response(
             if attempt < n_retry:
                 logger.warning("validation retry %d/%d — %s", attempt + 1, n_retry, validation_error)
                 retry_prompt = create_retry_prompt(
-                    original_prompt=current_prompt,
+                    original_prompt=prompt,
                     original_response=response_content,
                     error_message=validation_error,
                     data_model=data_model,
                 )
                 response_content = call_llm_fn(retry_prompt)
-                current_prompt = retry_prompt
                 continue
 
             logger.error("max retries reached — %s", validation_error)

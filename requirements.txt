@@ -5,6 +5,9 @@ instructor
 python-dotenv
 pytest
 pytest-cov
+pytest-timeout
+deepeval
+scikit-learn
 langchain-openai
 langchain-community
 langchain-text-splitters

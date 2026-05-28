@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from framework.core.schemas import BaseAgentInput, BaseAgentOutput, BaseToolArgs
 
 
-RiskVerdict = Literal["SAFE", "FLAGGED", "UNKNOWN"]
+RiskVerdict = Literal["SAFE", "FLAGGED", "UNKNOWN", "ESCALATE"]
 
 SUPPORTED_CHAINS = {"ethereum", "polygon", "arbitrum", "optimism", "base", "solana"}
 

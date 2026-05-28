@@ -1,10 +1,33 @@
 import re
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from agents.transaction_safety.knowledge_base import retrieve
 from agents.transaction_safety.schemas import AssessRiskArgs, RetrieveDocsArgs
 from framework.core.logger import get_logger
+from framework.core.schemas import BaseToolArgs
 
 logger = get_logger(__name__)
+
+ToolHandler = Callable[[BaseToolArgs], str]
+
+
+@dataclass(frozen=True)
+class ToolDefinition:
+    description: str
+    args_model: type[BaseToolArgs]
+    handler: ToolHandler
+
+    def schema(self, name: str) -> dict:
+        return {
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": self.description,
+                "parameters": self.args_model.model_json_schema(),
+            },
+        }
+
 
 RISKY_PATTERNS = [
     (r"unlimited|max uint256", "CRITICAL: Unlimited token approval detected."),
@@ -15,26 +38,6 @@ RISKY_PATTERNS = [
     (r"send.*first|deposit.*first", "CRITICAL: 'Send first to receive' — always a scam."),
 ]
 
-# Tool schemas generated from Pydantic models 
-TOOLS_SCHEMA = [
-    {
-        "type": "function",
-        "function": {
-            "name": "retrieve_docs",
-            "description": "Retrieve documentation about address formats for a given blockchain.",
-            "parameters": RetrieveDocsArgs.model_json_schema(),
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "assess_risk",
-            "description": "Assess a blockchain address for known scam and phishing patterns.",
-            "parameters": AssessRiskArgs.model_json_schema(),
-        },
-    },
-]
-
 
 def tool_retrieve_docs(args: RetrieveDocsArgs) -> str:
     docs = retrieve(args.query)
@@ -43,28 +46,53 @@ def tool_retrieve_docs(args: RetrieveDocsArgs) -> str:
     return result
 
 
-def tool_assess_risk(args: AssessRiskArgs) -> str:
-    details = f"address={args.address} chain={args.chain}"
-    if args.context:
-        details += f" context={args.context}"
-
-    findings = [
-        msg for pattern, msg in RISKY_PATTERNS
-        if re.search(pattern, details.lower())
+def _risk_scan_text(args: AssessRiskArgs) -> str:
+    parts = [
+        f"address={args.address}",
+        f"chain={args.chain}",
     ]
+    if args.context:
+        parts.append(f"context={args.context}")
+    return " ".join(parts).lower()
 
+
+def _format_findings(findings: list[str]) -> str:
     if not findings:
         return "No known high-risk patterns detected. Verify the address independently before proceeding."
-    return "RISK ASSESSMENT — Issues Found:\n" + "\n".join(f"- {f}" for f in findings)
+    return "RISK ASSESSMENT — Issues Found:\n" + "\n".join(f"- {finding}" for finding in findings)
+
+
+def tool_assess_risk(args: AssessRiskArgs) -> str:
+    scan_text = _risk_scan_text(args)
+    findings = [
+        message
+        for pattern, message in RISKY_PATTERNS
+        if re.search(pattern, scan_text)
+    ]
+    return _format_findings(findings)
+
+
+TOOLS = {
+    "retrieve_docs": ToolDefinition(
+        description="Retrieve documentation about address formats for a given blockchain.",
+        args_model=RetrieveDocsArgs,
+        handler=tool_retrieve_docs,
+    ),
+    "assess_risk": ToolDefinition(
+        description="Assess a blockchain address for known scam and phishing patterns.",
+        args_model=AssessRiskArgs,
+        handler=tool_assess_risk,
+    ),
+}
+
+TOOLS_SCHEMA = [tool.schema(name) for name, tool in TOOLS.items()]
 
 
 def handle_tool_call(tool_call) -> str:
     """Validate tool args through Pydantic, then execute the tool."""
     name = tool_call.function.name
-    if name == "retrieve_docs":
-        args = RetrieveDocsArgs.model_validate_json(tool_call.function.arguments)
-        return tool_retrieve_docs(args)
-    if name == "assess_risk":
-        args = AssessRiskArgs.model_validate_json(tool_call.function.arguments)
-        return tool_assess_risk(args)
+    tool = TOOLS.get(name)
+    if tool:
+        args = tool.args_model.model_validate_json(tool_call.function.arguments)
+        return tool.handler(args)
     return f"Unknown tool: {name}"

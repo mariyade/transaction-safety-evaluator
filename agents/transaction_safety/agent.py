@@ -16,11 +16,13 @@ from framework.core.schemas import FreeTextInput
 
 logger = get_logger(__name__)
 
+REQUIRED_TOOLS = {"retrieve_docs", "assess_risk"}
+
 
 class TransactionSafetyAgent(BaseAgent):
 
-    def __init__(self, model: str = MODEL):
-        super().__init__(model)
+    def __init__(self, model: str = MODEL, max_tool_rounds: int = 5):
+        super().__init__(model, max_tool_rounds=max_tool_rounds)
         self._input_guards = [
             PromptInjectionGuard(),
             PIIGuard(),
@@ -29,6 +31,7 @@ class TransactionSafetyAgent(BaseAgent):
         self._output_guard = VerdictGuard()
         self._hallucination_guard = HallucinationGuard()
         self._assess_risk_results: list[str] = []
+        self._called_tools: set[str] = set()
 
     @property
     def system_prompt(self) -> str:
@@ -38,7 +41,17 @@ class TransactionSafetyAgent(BaseAgent):
     def tools_schema(self) -> list:
         return TOOLS_SCHEMA
 
+    def _escalate(self, reason: str) -> AddressValidationResult:
+        return AddressValidationResult(
+            verdict="ESCALATE",
+            confidence=0.0,
+            detected_format="unknown",
+            reasoning=reason,
+            risk_factors=[],
+        )
+
     def _handle_tool_call(self, tool_call) -> str:
+        self._called_tools.add(tool_call.function.name)
         result = handle_tool_call(tool_call)
         if tool_call.function.name == "assess_risk":
             self._assess_risk_results.append(result)
@@ -54,6 +67,7 @@ class TransactionSafetyAgent(BaseAgent):
 
         logger.info("run started — %s", user_message[:80])
         self._assess_risk_results = []
+        self._called_tools = set()
 
         guards = self._input_guards if isinstance(input, FreeTextInput) else [
             g for g in self._input_guards if not isinstance(g, PIIGuard)
@@ -64,7 +78,18 @@ class TransactionSafetyAgent(BaseAgent):
                 logger.warning("input guard blocked — %s", guard_result.error)
                 return None, guard_result.error
 
-        agent_response = self._run_tool_loop(user_message)
+        try:
+            agent_response = self._run_tool_loop(user_message)
+        except RuntimeError as error:
+            logger.error("tool loop failed — escalating — %s", error)
+            return self._escalate(str(error)), None
+
+        missing_tools = REQUIRED_TOOLS - self._called_tools
+        if missing_tools:
+            reason = f"Required tool calls were skipped: {', '.join(sorted(missing_tools))}"
+            logger.error("run failed — escalating — %s", reason)
+            return self._escalate(reason), None
+
         structured_prompt = build_structured_output_prompt(address, chain, agent_response)
         result, error = validate_llm_response(
             prompt=structured_prompt,
@@ -74,13 +99,13 @@ class TransactionSafetyAgent(BaseAgent):
         )
 
         if error:
-            logger.error("run failed — %s", error)
-            return None, error
+            logger.error("run failed — escalating — %s", error)
+            return self._escalate(error), None
 
         guard_result = self._output_guard.check(result)
         if not guard_result.passed:
-            logger.warning("output guard blocked — %s", guard_result.error)
-            return None, guard_result.error
+            logger.warning("output guard failed — escalating — %s", guard_result.error)
+            return self._escalate(guard_result.error), None
 
         # Only assess_risk results are factual claims about this specific address
         full_context = "\n\n".join(self._assess_risk_results)
@@ -89,8 +114,8 @@ class TransactionSafetyAgent(BaseAgent):
             context=full_context,
         )
         if not guard_result.passed:
-            logger.warning("hallucination guard blocked — %s", guard_result.error)
-            return None, guard_result.error
+            logger.warning("hallucination guard failed — escalating — %s", guard_result.error)
+            return self._escalate(guard_result.error), None
 
         logger.info("run complete — verdict=%s confidence=%s", result.verdict, result.confidence)
         return result, None
