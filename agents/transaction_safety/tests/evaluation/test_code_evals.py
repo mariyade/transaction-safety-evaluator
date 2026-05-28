@@ -30,10 +30,12 @@ def eval_results(agent):
     results = []
     for inp, expected in GOLDEN_SET:
         result, error = agent.run(inp)
+        assert error is None
+        assert result is not None
         results.append({
             "expected": expected,
-            "predicted": result.verdict if result else "ERROR",
-            "confidence": result.confidence if result else 0.0,
+            "predicted": result.verdict,
+            "confidence": result.confidence,
         })
     return results
 

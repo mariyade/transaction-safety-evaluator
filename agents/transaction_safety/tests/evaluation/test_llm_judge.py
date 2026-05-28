@@ -18,7 +18,9 @@ pytestmark = pytest.mark.evaluation
 
 
 def _run(agent, inp):
-    result, _ = agent.run(inp)
+    result, error = agent.run(inp)
+    assert error is None
+    assert result is not None
     return result
 
 
