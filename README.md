@@ -18,7 +18,9 @@ ai_evaluation_framework/
 │   └── core/                          ← shared base, never agent-specific
 │       ├── config.py                  ← OPENAI_API_KEY, DEFAULT_MODEL, DEFAULT_N_RETRY
 │       ├── schemas.py                 ← BaseAgentInput, BaseAgentOutput, BaseToolArgs
-│       ├── base_agent.py              ← abstract BaseAgent (model + system_prompt + run)
+│       ├── base_agent.py              ← abstract BaseAgent (prompt, bounded tool loop, run)
+│       ├── llm.py                     ← LLMClient protocol + OpenAIChatClient adapter
+│       ├── tools.py                   ← ToolCall, ToolDefinition, ToolRegistry
 │       ├── pydantic_validator.py      ← validate_with_model, create_retry_prompt, validate_llm_response
 │       └── guardrails/
 │           ├── base.py                ← GuardResult dataclass (passed, error)
@@ -107,11 +109,11 @@ Every agent must implement four things:
 | What | Why |
 |---|---|
 | `system_prompt` property | defines the agent's role and behaviour |
-| `tools_schema` property | list of OpenAI function definitions for this agent |
-| `_handle_tool_call(tool_call)` | routes tool calls to your tool functions |
+| `tools_schema` property | list of provider-compatible tool definitions for this agent |
+| `_handle_tool_call(tool_call)` | routes normalized `ToolCall` objects to your tool functions |
 | `run(input)` | formats input into a user message, calls `_run_tool_loop()`, returns structured output |
 
-`_call_llm` and `_run_tool_loop` are provided by `BaseAgent` — no need to implement them.
+`_call_llm` and `_run_tool_loop` are provided by `BaseAgent`. By default they use `OpenAIChatClient`, but any object matching the `LLMClient` protocol can be injected.
 
 ### Implementation sequence
 
@@ -189,7 +191,9 @@ pytest -m evaluation
 |---|---|
 | `framework/core/config.py` | `OPENAI_API_KEY`, `DEFAULT_MODEL`, `DEFAULT_N_RETRY` |
 | `framework/core/schemas.py` | `BaseAgentInput` (+ `request_id`, `timestamp`), `FreeTextInput` (+ `text`), `BaseAgentOutput` (+ `verdict`, `confidence`), `BaseToolArgs` |
-| `framework/core/base_agent.py` | `BaseAgent` — shared OpenAI client, `_call_llm()`, bounded `_run_tool_loop()`; agents implement `system_prompt`, `tools_schema`, `_handle_tool_call()`, `run()` |
+| `framework/core/base_agent.py` | `BaseAgent` — shared LLM client, `_call_llm()`, bounded `_run_tool_loop()`; agents implement `system_prompt`, `tools_schema`, `_handle_tool_call()`, `run()` |
+| `framework/core/llm.py` | `LLMClient` protocol, `ToolLoopTurn`, and `OpenAIChatClient` adapter |
+| `framework/core/tools.py` | `ToolCall`, `ToolDefinition`, and `ToolRegistry` for reusable tool dispatch |
 | `framework/core/pydantic_validator.py` | `validate_with_model()`, `create_retry_prompt()`, `validate_llm_response()` |
 | `framework/core/logger.py` | `get_logger(__name__)` — call in any module to get a named, pre-configured logger |
 

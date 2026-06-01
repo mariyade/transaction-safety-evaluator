@@ -1,21 +1,25 @@
 from abc import ABC, abstractmethod
 
-from openai import OpenAI
-
-from framework.core.config import OPENAI_API_KEY
+from framework.core.llm import LLMClient, OpenAIChatClient
 from framework.core.logger import get_logger
 from framework.core.schemas import BaseAgentInput, BaseAgentOutput
+from framework.core.tools import ToolCall
 
 logger = get_logger(__name__)
 
 
 class BaseAgent(ABC):
-    """Abstract base — every agent gets the OpenAI client, tool loop, and LLM call for free."""
+    """Abstract base — every agent gets an LLM client, tool loop, and LLM call for free."""
 
-    def __init__(self, model: str, max_tool_rounds: int = 5):
+    def __init__(
+        self,
+        model: str,
+        max_tool_rounds: int = 5,
+        llm_client: LLMClient | None = None,
+    ):
         self.model = model
         self.max_tool_rounds = max_tool_rounds
-        self.client = OpenAI(api_key=OPENAI_API_KEY, timeout=60.0)
+        self.llm_client = llm_client or OpenAIChatClient()
 
     @property
     @abstractmethod
@@ -26,17 +30,13 @@ class BaseAgent(ABC):
     def tools_schema(self) -> list: ...
 
     @abstractmethod
-    def _handle_tool_call(self, tool_call) -> str: ...
+    def _handle_tool_call(self, tool_call: ToolCall) -> str: ...
 
     @abstractmethod
     def run(self, input: BaseAgentInput) -> tuple[BaseAgentOutput | None, str | None]: ...
 
     def _call_llm(self, prompt: str) -> str:
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.choices[0].message.content
+        return self.llm_client.complete(model=self.model, prompt=prompt)
 
     def _run_tool_loop(self, user_message: str) -> str:
         messages = [
@@ -45,23 +45,22 @@ class BaseAgent(ABC):
         ]
 
         for _ in range(self.max_tool_rounds):
-            response = self.client.chat.completions.create(
+            turn = self.llm_client.complete_with_tools(
                 model=self.model,
                 messages=messages,
                 tools=self.tools_schema,
             )
-            msg = response.choices[0].message
-            messages.append(msg.model_dump())
+            messages.append(turn.assistant_message)
 
-            if msg.tool_calls:
-                for tool_call in msg.tool_calls:
-                    logger.info("tool call — %s", tool_call.function.name)
+            if turn.tool_calls:
+                for tool_call in turn.tool_calls:
+                    logger.info("tool call — %s", tool_call.name)
                     messages.append({
                         "role": "tool",
                         "content": self._handle_tool_call(tool_call),
                         "tool_call_id": tool_call.id,
                     })
             else:
-                return msg.content
+                return turn.content or ""
 
         raise RuntimeError(f"Tool loop exceeded {self.max_tool_rounds} rounds")

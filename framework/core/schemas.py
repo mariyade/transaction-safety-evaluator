@@ -36,5 +36,5 @@ class FreeTextInput(BaseAgentInput):
 
 
 class BaseToolArgs(BaseModel):
-    """Type marker for tool input schemas — subclasses generate OpenAI function definitions via model_json_schema()."""
+    """Type marker for tool input schemas used by ToolDefinition."""
     pass

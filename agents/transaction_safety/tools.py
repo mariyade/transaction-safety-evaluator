@@ -1,33 +1,11 @@
 import re
-from collections.abc import Callable
-from dataclasses import dataclass
 
 from agents.transaction_safety.knowledge_base import retrieve
 from agents.transaction_safety.schemas import AssessRiskArgs, RetrieveDocsArgs
 from framework.core.logger import get_logger
-from framework.core.schemas import BaseToolArgs
+from framework.core.tools import ToolCall, ToolDefinition, ToolRegistry
 
 logger = get_logger(__name__)
-
-ToolHandler = Callable[[BaseToolArgs], str]
-
-
-@dataclass(frozen=True)
-class ToolDefinition:
-    description: str
-    args_model: type[BaseToolArgs]
-    handler: ToolHandler
-
-    def schema(self, name: str) -> dict:
-        return {
-            "type": "function",
-            "function": {
-                "name": name,
-                "description": self.description,
-                "parameters": self.args_model.model_json_schema(),
-            },
-        }
-
 
 RISKY_PATTERNS = [
     (r"unlimited|max uint256", "CRITICAL: Unlimited token approval detected."),
@@ -72,7 +50,7 @@ def tool_assess_risk(args: AssessRiskArgs) -> str:
     return _format_findings(findings)
 
 
-TOOLS = {
+TOOLS = ToolRegistry({
     "retrieve_docs": ToolDefinition(
         description="Retrieve documentation about address formats for a given blockchain.",
         args_model=RetrieveDocsArgs,
@@ -83,16 +61,11 @@ TOOLS = {
         args_model=AssessRiskArgs,
         handler=tool_assess_risk,
     ),
-}
+})
 
-TOOLS_SCHEMA = [tool.schema(name) for name, tool in TOOLS.items()]
+TOOLS_SCHEMA = TOOLS.schema
 
 
-def handle_tool_call(tool_call) -> str:
+def handle_tool_call(tool_call: ToolCall) -> str:
     """Validate tool args through Pydantic, then execute the tool."""
-    name = tool_call.function.name
-    tool = TOOLS.get(name)
-    if tool:
-        args = tool.args_model.model_validate_json(tool_call.function.arguments)
-        return tool.handler(args)
-    return f"Unknown tool: {name}"
+    return TOOLS.handle_call(tool_call)

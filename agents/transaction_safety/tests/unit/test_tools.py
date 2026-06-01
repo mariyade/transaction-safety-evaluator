@@ -1,22 +1,17 @@
 import json
-from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
 
 from agents.transaction_safety import tools
 from agents.transaction_safety.schemas import AssessRiskArgs, RetrieveDocsArgs
+from framework.core.tools import ToolCall
 
 pytestmark = pytest.mark.unit
 
 
-def _tool_call(name: str, arguments: dict) -> SimpleNamespace:
-    return SimpleNamespace(
-        function=SimpleNamespace(
-            name=name,
-            arguments=json.dumps(arguments),
-        )
-    )
+def _tool_call(name: str, arguments: dict) -> ToolCall:
+    return ToolCall(name=name, arguments=json.dumps(arguments))
 
 
 def test_assess_risk_flags_free_token_approval():

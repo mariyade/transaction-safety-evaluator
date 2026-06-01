@@ -10,9 +10,11 @@ from agents.transaction_safety.schemas import AddressInput, AddressValidationRes
 from agents.transaction_safety.tools import TOOLS_SCHEMA, handle_tool_call
 from framework.core.base_agent import BaseAgent
 from framework.core.guardrails import PIIGuard
+from framework.core.llm import LLMClient
 from framework.core.logger import get_logger
 from framework.core.pydantic_validator import validate_llm_response
 from framework.core.schemas import FreeTextInput
+from framework.core.tools import ToolCall
 
 logger = get_logger(__name__)
 
@@ -21,8 +23,13 @@ REQUIRED_TOOLS = {"retrieve_docs", "assess_risk"}
 
 class TransactionSafetyAgent(BaseAgent):
 
-    def __init__(self, model: str = MODEL, max_tool_rounds: int = 5):
-        super().__init__(model, max_tool_rounds=max_tool_rounds)
+    def __init__(
+        self,
+        model: str = MODEL,
+        max_tool_rounds: int = 5,
+        llm_client: LLMClient | None = None,
+    ):
+        super().__init__(model, max_tool_rounds=max_tool_rounds, llm_client=llm_client)
         self._input_guards = [
             PromptInjectionGuard(),
             PIIGuard(),
@@ -50,10 +57,10 @@ class TransactionSafetyAgent(BaseAgent):
             risk_factors=[],
         )
 
-    def _handle_tool_call(self, tool_call) -> str:
-        self._called_tools.add(tool_call.function.name)
+    def _handle_tool_call(self, tool_call: ToolCall) -> str:
+        self._called_tools.add(tool_call.name)
         result = handle_tool_call(tool_call)
-        if tool_call.function.name == "assess_risk":
+        if tool_call.name == "assess_risk":
             self._assess_risk_results.append(result)
         return result
 
