@@ -1,0 +1,25 @@
+[
+  {
+    "input": "Evaluate this address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 on ethereum",
+    "expected_output": "The reasoning should evaluate an Ethereum-format address using retrieved Ethereum address context.",
+    "additional_metadata": {
+      "input_type": "address",
+      "agent_input": {
+        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "chain": "ethereum"
+      },
+      "context_query": "ethereum address format 0x hexadecimal"
+    }
+  },
+  {
+    "input": "Someone sent me a link to claim free USDC by approving a contract. Should I do it?",
+    "expected_output": "The reasoning should address the free-token claim and approval-request risk.",
+    "additional_metadata": {
+      "input_type": "free_text",
+      "agent_input": {
+        "text": "Someone sent me a link to claim free USDC by approving a contract. Should I do it?"
+      },
+      "context_query": "free USDC claim approve contract phishing"
+    }
+  }
+]

@@ -1,11 +1,61 @@
 import re
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from agents.transaction_safety.knowledge_base import retrieve
-from agents.transaction_safety.schemas import AssessRiskArgs, RetrieveDocsArgs
-from framework.core.logger import get_logger
-from framework.core.tools import ToolCall, ToolDefinition, ToolRegistry
+from agents.transaction_safety.logger import get_logger
+from agents.transaction_safety.schemas import AssessRiskArgs, BaseToolArgs, RetrieveDocsArgs
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class ToolCall:
+    name: str
+    arguments: str
+    id: str | None = None
+
+    @classmethod
+    def from_openai(cls, tool_call) -> "ToolCall":
+        return cls(
+            name=tool_call.function.name,
+            arguments=tool_call.function.arguments,
+            id=tool_call.id,
+        )
+
+
+@dataclass(frozen=True)
+class ToolDefinition:
+    description: str
+    args_model: type[BaseToolArgs]
+    handler: Callable[[BaseToolArgs], str]
+
+    def schema(self, name: str) -> dict:
+        return {
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": self.description,
+                "parameters": self.args_model.model_json_schema(),
+            },
+        }
+
+    def run(self, arguments: str) -> str:
+        args = self.args_model.model_validate_json(arguments)
+        return self.handler(args)
+
+
+class ToolRegistry(dict[str, ToolDefinition]):
+    @property
+    def schema(self) -> list[dict]:
+        return [tool.schema(name) for name, tool in self.items()]
+
+    def run_tool_call(self, tool_call: ToolCall) -> str:
+        tool = self.get(tool_call.name)
+        if tool:
+            return tool.run(tool_call.arguments)
+        return f"Unknown tool: {tool_call.name}"
+
 
 RISKY_PATTERNS = [
     (r"unlimited|max uint256", "CRITICAL: Unlimited token approval detected."),
@@ -66,6 +116,6 @@ TOOLS = ToolRegistry({
 TOOLS_SCHEMA = TOOLS.schema
 
 
-def handle_tool_call(tool_call: ToolCall) -> str:
+def execute_tool_call(tool_call: ToolCall) -> str:
     """Validate tool args through Pydantic, then execute the tool."""
-    return TOOLS.handle_call(tool_call)
+    return TOOLS.run_tool_call(tool_call)

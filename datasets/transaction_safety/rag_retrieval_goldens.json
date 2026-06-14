@@ -1,0 +1,18 @@
+[
+  {
+    "input": "ethereum address format 0x hexadecimal",
+    "expected_output": "Ethereum addresses should start with 0x and use 40 hexadecimal characters after the prefix."
+  },
+  {
+    "input": "solana address format base58 ed25519",
+    "expected_output": "Solana addresses are Base58-encoded Ed25519 public keys and are usually 32 to 44 characters long."
+  },
+  {
+    "input": "cross-chain transfer USDC permanent loss funds",
+    "expected_output": "Sending assets across incompatible chains without a supported bridge can cause permanent loss of funds."
+  },
+  {
+    "input": "clipboard hijacking address verification copy paste",
+    "expected_output": "Clipboard hijacking can replace a copied address, so users should verify pasted addresses before sending funds."
+  }
+]

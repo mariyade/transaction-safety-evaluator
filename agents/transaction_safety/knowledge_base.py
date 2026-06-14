@@ -3,12 +3,24 @@ import os
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 DOCS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "docs")
-PERSIST_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "chroma_db")
+PERSIST_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "chroma_db", "transaction_safety_sections_v1")
+RETRIEVAL_K = 2
 
 _retriever = None
+
+
+def _section_documents(content: str, filename: str) -> list[Document]:
+    sections = [section.strip() for section in content.split("\n\n") if section.strip()]
+    return [
+        Document(
+            page_content=section,
+            metadata={"source": filename, "section": section.splitlines()[0]},
+        )
+        for section in sections
+        if len(section.splitlines()) > 1
+    ]
 
 
 def _load_documents() -> list[Document]:
@@ -18,7 +30,7 @@ def _load_documents() -> list[Document]:
             path = os.path.join(DOCS_DIR, filename)
             with open(path) as f:
                 content = f.read()
-            documents.append(Document(page_content=content, metadata={"source": filename}))
+            documents.extend(_section_documents(content, filename))
     return documents
 
 
@@ -27,12 +39,10 @@ def _build_retriever():
     if os.path.exists(PERSIST_DIR):
         vectorstore = Chroma(persist_directory=PERSIST_DIR, embedding_function=embeddings)
         if vectorstore._collection.count() > 0:
-            return vectorstore.as_retriever(search_kwargs={"k": 3})
+            return vectorstore.as_retriever(search_kwargs={"k": RETRIEVAL_K})
     documents = _load_documents()
-    splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
-    chunks = splitter.split_documents(documents)
-    vectorstore = Chroma.from_documents(chunks, embeddings, persist_directory=PERSIST_DIR)
-    return vectorstore.as_retriever(search_kwargs={"k": 3})
+    vectorstore = Chroma.from_documents(documents, embeddings, persist_directory=PERSIST_DIR)
+    return vectorstore.as_retriever(search_kwargs={"k": RETRIEVAL_K})
 
 
 def get_retriever():

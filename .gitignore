@@ -5,3 +5,5 @@ __pycache__/
 venv/
 chroma_db/
 logs/
+.deepeval/
+evaluation_results/

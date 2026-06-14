@@ -1,6 +1,5 @@
 pydantic>=2.0
 openai
-anthropic
 instructor
 python-dotenv
 pytest

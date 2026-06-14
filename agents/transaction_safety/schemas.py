@@ -1,13 +1,49 @@
 import re
+import uuid
+from datetime import datetime, timezone
 from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
-
-from framework.core.schemas import BaseAgentInput, BaseAgentOutput, BaseToolArgs
 
 
 RiskVerdict = Literal["SAFE", "FLAGGED", "UNKNOWN", "ESCALATE"]
 
 SUPPORTED_CHAINS = {"ethereum", "polygon", "arbitrum", "optimism", "base", "solana"}
+
+
+class BaseAgentInput(BaseModel):
+    """Base input with request metadata."""
+
+    request_id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique identifier for this request, auto-generated if not provided",
+    )
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="UTC timestamp of when this request was created",
+    )
+
+
+class BaseAgentOutput(BaseModel):
+    """Base output returned by the agent."""
+
+    verdict: str = Field(..., description="Outcome of the evaluation, e.g. SAFE, FLAGGED, UNKNOWN")
+    confidence: float = Field(..., description="Confidence score between 0.0 and 1.0")
+
+    @field_validator("confidence")
+    @classmethod
+    def confidence_must_be_valid(cls, v: float) -> float:
+        if not (0.0 <= v <= 1.0):
+            raise ValueError(f"confidence must be between 0.0 and 1.0, got {v}")
+        return round(v, 4)
+
+
+class FreeTextInput(BaseAgentInput):
+    text: str = Field(..., description="Free text input — question, scenario, or natural language query")
+
+
+class BaseToolArgs(BaseModel):
+    """Type marker for tool input schemas."""
+    pass
 
 
 class AddressInput(BaseAgentInput):

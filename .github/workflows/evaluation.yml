@@ -1,0 +1,110 @@
+name: Evaluation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ── 1. Integration tests ────────────────────────────────────────────────────
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download spaCy model
+        run: python -m spacy download en_core_web_sm
+
+      - name: Run integration tests
+        run: |
+          pytest -m integration \
+            --json-report evaluation_results/integration.json \
+            -v --tb=short
+
+      - name: Upload integration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-report-${{ github.run_id }}
+          path: evaluation_results/integration.json
+
+  # ── 2. Risk-classification evals (sklearn, no LLM judge) ───────────────────
+  risk-classification:
+    name: Risk Classification Evals
+    runs-on: ubuntu-latest
+    needs: integration
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download spaCy model
+        run: python -m spacy download en_core_web_sm
+
+      - name: Run risk-classification evals
+        run: |
+          pytest tests/transaction_safety/evaluation/e2e/test_risk_classification.py \
+            --json-report evaluation_results/risk_classification.json \
+            -v --tb=short
+
+      - name: Upload risk-classification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: risk-classification-report-${{ github.run_id }}
+          path: evaluation_results/risk_classification.json
+
+  # ── 3. deepeval LLM-judge quality evals ────────────────────────────────────
+  deepeval-quality:
+    name: DeepEval Quality Evals
+    runs-on: ubuntu-latest
+    needs: integration
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download spaCy model
+        run: python -m spacy download en_core_web_sm
+
+      - name: Run deepeval quality tests
+        run: |
+          deepeval test run \
+            tests/transaction_safety/evaluation/e2e/test_final_answer_quality.py
+
+      - name: Upload deepeval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepeval-report-${{ github.run_id }}
+          path: evaluation_results/

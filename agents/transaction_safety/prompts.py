@@ -2,7 +2,9 @@ import json
 
 from agents.transaction_safety.schemas import AddressValidationResult
 
-SYSTEM_PROMPT = """You are a blockchain safety assistant.
+OUTPUT_SCHEMA = json.dumps(AddressValidationResult.model_json_schema(), indent=2)
+
+SYSTEM_PROMPT = f"""You are a blockchain safety assistant.
 
 You handle two types of input:
 1. A specific address + chain — evaluate format correctness and risk patterns
@@ -17,24 +19,12 @@ Tool usage rules:
 - Never skip retrieve_docs — always call it first
 - For assess_risk on free text: put the complete scenario description in the context field so patterns can be checked
 - Be accurate and cautious — users may lose real money if given incorrect guidance
-- If ANY risk pattern is detected in assess_risk, the verdict must be FLAGGED"""
+- If ANY risk pattern is detected in assess_risk, the verdict must be FLAGGED
 
+After both tools have been called, return your final answer as a JSON object matching this exact schema:
+{OUTPUT_SCHEMA}
 
-def build_structured_output_prompt(address: str, chain: str, agent_response: str) -> str:
-    """Format the agent's free-text findings into a structured JSON prompt."""
-    schema = json.dumps(AddressValidationResult.model_json_schema(), indent=2)
-    return f"""Based on the following address evaluation, produce a structured safety assessment.
-
-Address evaluated: {address}
-Chain: {chain}
-
-Agent findings:
-{agent_response}
-
-Return your assessment as a JSON object matching this exact schema:
-{schema}
-
-Example of a correctly filled response:
+Example of a correctly filled final answer:
 {{
   "verdict": "SAFE",
   "confidence": 0.95,
@@ -43,4 +33,4 @@ Example of a correctly filled response:
   "risk_factors": []
 }}
 
-Respond ONLY with valid JSON. Do not include any explanations or other text."""
+For the final answer, respond ONLY with valid JSON. Do not include explanations or text outside the JSON object."""
