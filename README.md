@@ -1,32 +1,48 @@
 # AI Evaluation Framework
 
-<img src="docs/guardrails_pipeline.png" alt="Guardrails Pipeline" width="66%">
+A transaction-safety agent that implements AI testing and evaluation approaches for LLM agent and RAG workflows.
 
-A transaction-safety agent project that showcases AI testing and evaluation approaches for agent and RAG workflows.
+<img src="docs/guardrails_pipeline.png" alt="Guardrails Pipeline" width="100%">
 
-It evaluates the agent across end-to-end behaviour, component-level RAG quality, safety guardrails, and deterministic validation logic.
+---
 
-The `transaction_safety` agent is the reference implementation. It:
+### Background
+
+This project is a proof of concept (PoC) for testing and evaluating LLM-powered agents with tools like DeepEval, OpenAI, ChromaDB, Pydantic, and Presidio. The `transaction_safety` agent is the reference implementation. It:
 
 - Takes a blockchain address or free-text safety question
 - Validates input with Pydantic
-- Checks input guardrails
-- Calls tools
-- Uses RAG
-- Returns final JSON directly from the tool loop and validates it with Pydantic
-- Returns a structured safety verdict
-- Runs output and hallucination guardrails
+- Checks input guardrails (prompt injection, PII, crypto secrets)
+- Calls tools and uses RAG to retrieve blockchain safety context
+- Returns a structured safety verdict validated with Pydantic
+- Runs output guardrails (hallucination detection, verdict validation)
 
-If the final LLM response is malformed JSON or does not match the expected Pydantic output schema, the agent asks the model to correct that response and retries validation. This retry path is runtime behaviour; the tests under `tests/transaction_safety/unit/` verify the parser and validation flow.
+If the final LLM response is malformed JSON or does not match the expected Pydantic output schema, the agent retries validation automatically.
 
-Testing approach:
+---
 
-- End-to-end evaluation treats the agent as a black box: `evaluation/e2e/`.
-- Component-level evaluation checks one subsystem directly: `evaluation/component/rag/`.
-- Component-level safety tests check guardrails directly: `tests/transaction_safety/guardrails/input/` and `tests/transaction_safety/guardrails/output/`.
-- Unit tests cover deterministic internals: Pydantic schemas, structured output validation, retry parsing, tools, and risk-pattern scanning.
+### Technology
+
+- **Language:** Python
+- **LLM:** OpenAI (GPT-4o-mini by default)
+- **Structured output:** Pydantic, Instructor
+- **Vector store:** ChromaDB
+- **PII detection:** Microsoft Presidio, spaCy
+- **Evaluation:** DeepEval (faithfulness, hallucination, answer relevancy, G-Eval), scikit-learn
+- **CI/CD:** GitHub Actions
+
+---
+
+### Testing approach
+
+- End-to-end evaluation treats the agent as a black box: `evaluation/e2e/`
+- Component-level evaluation checks one subsystem directly: `evaluation/component/rag/`
+- Component-level safety tests check guardrails directly: `tests/transaction_safety/guardrails/`
+- Unit tests cover deterministic internals: Pydantic schemas, structured output validation, retry parsing, tools, and risk-pattern scanning
 
 All test layers are integrated into CI/CD via GitHub Actions. Unit and guardrails tests run on every push and PR (no API key required). Integration and evaluation tests run automatically on merge to `main` and can also be triggered manually.
+
+---
 
 ## Project structure
 
@@ -99,17 +115,6 @@ All configuration is in `.env`. The agent reads it automatically via `python-dot
 | `DEFAULT_MODEL` | `gpt-4o-mini` | Fallback model when no transaction-safety override is set |
 | `DEFAULT_TEMPERATURE` | `0` | Fallback sampling temperature; low values make eval runs more repeatable |
 | `DEFAULT_N_RETRY` | `5` | Retry attempts for Pydantic validation failures |
-| `TRANSACTION_SAFETY_MODEL` | `DEFAULT_MODEL` | Override model for this agent only |
-| `TRANSACTION_SAFETY_N_RETRY` | `DEFAULT_N_RETRY` | Override retries for this agent only |
-| `TRANSACTION_SAFETY_TEMPERATURE` | `DEFAULT_TEMPERATURE` | Override temperature for this agent only |
-
-You can also override the model at instantiation without touching `.env`:
-
-```python
-agent = TransactionSafetyAgent()                  # uses .env or default
-agent = TransactionSafetyAgent(model="gpt-4o")    # override at runtime
-agent = TransactionSafetyAgent(max_tool_rounds=3) # stop repeated tool loops earlier
-```
 
 ---
 
@@ -126,18 +131,12 @@ python -m run
 
 Tests are split by scope, cost, and whether they exercise the whole agent or a specific component.
 
-| Layer | Folder | API key | Speed | Scope | What it covers |
+| Scope | Folder | API key | Speed | Layer | What it covers |
 |---|---|---|---|---|---|
-| Unit | `tests/transaction_safety/unit/` | No | Fast | Unit tests | Pydantic schemas, structured output validation, retry parsing, tool routing, prompt building |
-| Guardrails | `tests/transaction_safety/guardrails/` | No | Fast | Component-level safety tests | Prompt injection, PII, private keys/seed phrases, hallucination guard, verdict guard |
-| Integration | `tests/transaction_safety/integration/` | Yes | Slow | End-to-end integration tests | Full `TransactionSafetyAgent.run()` against the real OpenAI API; asserts verdict and confidence for known inputs |
-| Evaluation | `tests/transaction_safety/evaluation/` | Yes | Slow | End-to-end + component-level evaluation | `e2e/` checks full-agent verdict and final-answer quality; `component/` checks targeted subsystems such as RAG |
-
-**Rules:**
-- Unit tests must never make network calls or import OpenAI
-- Integration tests are auto-skipped if `OPENAI_API_KEY` is not set
-- Use markers to choose cost and scope: `unit`, `guardrails`, `integration`, and `evaluation`
-- All tests use real pytest files — no YAML, no custom DSL
+| Unit tests | `tests/transaction_safety/unit/` | No | Fast | Unit | Pydantic schemas, structured output validation, retry parsing, tool routing, prompt building |
+| Component-level safety tests | `tests/transaction_safety/guardrails/` | No | Fast | Guardrails | Prompt injection, PII, private keys/seed phrases, hallucination guard, verdict guard |
+| End-to-end integration tests | `tests/transaction_safety/integration/` | Yes | Slow | Integration | Full `TransactionSafetyAgent.run()` against the real OpenAI API; asserts verdict and confidence for known inputs |
+| End-to-end + component-level evaluation | `tests/transaction_safety/evaluation/` | Yes | Slow | Evaluation | `e2e/` checks full-agent verdict and final-answer quality; `component/` checks targeted subsystems such as RAG |
 
 ### Commands
 
