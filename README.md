@@ -8,7 +8,7 @@ A transaction-safety agent that implements AI testing and evaluation approaches 
 
 ### Background
 
-This project is a proof of concept (PoC) for testing and evaluating LLM-powered agents with tools like DeepEval, OpenAI, ChromaDB, Pydantic, and Presidio. The `transaction_safety` agent is the reference implementation. It:
+This project is a proof of concept (PoC) for testing and evaluating LLM-powered agents with tools like DeepEval, OpenAI, ChromaDB, Pydantic, Presidio, and GitHub Actions. The `transaction_safety` agent is the reference implementation. It:
 
 - Takes a blockchain address or free-text safety question
 - Validates input with Pydantic
@@ -25,22 +25,24 @@ If the final LLM response is malformed JSON or does not match the expected Pydan
 
 - **Language:** Python
 - **LLM:** OpenAI (GPT-4o-mini by default)
-- **Structured output:** Pydantic, Instructor
-- **Vector store:** ChromaDB
+- **Structured validation:** Pydantic
+- **RAG:** LangChain, OpenAI embeddings, ChromaDB
 - **PII detection:** Microsoft Presidio, spaCy
-- **Evaluation:** DeepEval (faithfulness, hallucination, answer relevancy, G-Eval), scikit-learn
-- **CI/CD:** GitHub Actions
+- **Hallucination guard:** Hugging Face Transformers, PyTorch, NLI model
+- **Test runner:** pytest, pytest-cov, pytest-json-report
+- **Evaluation:** DeepEval, scikit-learn
+- **CI/CD:** GitHub Actions workflows for CI and evaluation
 
 ---
 
 ### Testing approach
 
-- End-to-end evaluation treats the agent as a black box: `evaluation/e2e/`
-- Component-level evaluation checks one subsystem directly: `evaluation/component/rag/`
-- Component-level safety tests check guardrails directly: `tests/transaction_safety/guardrails/`
-- Unit tests cover deterministic internals: Pydantic schemas, structured output validation, retry parsing, tools, and risk-pattern scanning
+- Unit tests cover deterministic internals: Pydantic models, structured output validation, retry parsing, tools, risk-pattern scanning, and runtime guardrails
+- Integration tests verify that the agent components work together through `TransactionSafetyAgent.run()`: `tests/transaction_safety/integration/`
+- End-to-end evaluation treats the full agent as a black box and scores final outcomes: `tests/transaction_safety/evaluation/e2e/`
+- Component-level RAG evaluation checks retrieval and grounding quality directly: `tests/transaction_safety/evaluation/component/rag/`
 
-All test layers are integrated into CI/CD via GitHub Actions. Unit and guardrails tests run on every push and PR (no API key required). Integration and evaluation tests run automatically on merge to `main` and can also be triggered manually.
+All test layers are integrated into GitHub Actions. Unit tests, including guardrail component tests, run on every push and PR without an API key. Integration tests, end-to-end evaluation, and component-level RAG evaluation run from the manual evaluation workflow.
 
 ---
 
@@ -66,16 +68,16 @@ ai_evaluation_framework/
 │   └── transaction_safety/
 │       ├── unit/
 │       │   ├── test_agent_safety.py
-│       │   ├── test_pydantic_validator.py
-│       │   ├── test_schemas.py
-│       │   └── test_tools.py
-│       ├── guardrails/
-│       │   ├── input/
-│       │   │   ├── test_crypto_secrets.py
-│       │   │   └── test_prompt_injection.py
-│       │   └── output/
-│       │       ├── test_hallucination.py
-│       │       └── test_verdict.py
+│       │   ├── test_pydantic_output_validator.py
+│       │   ├── test_pydantic_models.py
+│       │   ├── test_tools.py
+│       │   └── guardrails/
+│       │       ├── input/
+│       │       │   ├── test_crypto_secrets.py
+│       │       │   └── test_prompt_injection.py
+│       │       └── output/
+│       │           ├── test_hallucination.py
+│       │           └── test_verdict.py
 │       ├── integration/
 │       │   └── test_agent_flow.py
 │       └── evaluation/
@@ -133,10 +135,10 @@ Tests are split by scope, cost, and whether they exercise the whole agent or a s
 
 | Scope | Folder | API key | Speed | Layer | What it covers |
 |---|---|---|---|---|---|
-| Unit tests | `tests/transaction_safety/unit/` | No | Fast | Unit | Pydantic schemas, structured output validation, retry parsing, tool routing, prompt building |
-| Component-level safety tests | `tests/transaction_safety/guardrails/` | No | Fast | Guardrails | Prompt injection, PII, private keys/seed phrases, hallucination guard, verdict guard |
-| End-to-end integration tests | `tests/transaction_safety/integration/` | Yes | Slow | Integration | Full `TransactionSafetyAgent.run()` against the real OpenAI API; asserts verdict and confidence for known inputs |
-| End-to-end + component-level evaluation | `tests/transaction_safety/evaluation/` | Yes | Slow | Evaluation | `e2e/` checks full-agent verdict and final-answer quality; `component/` checks targeted subsystems such as RAG |
+| Unit tests | `tests/transaction_safety/unit/` | No | Fast | Unit + guardrail components | Pydantic models, structured output validation, retry parsing, tool routing, prompt building, prompt injection, PII, private keys/seed phrases, hallucination guard, verdict guard |
+| Integration tests | `tests/transaction_safety/integration/` | Yes | Slow | Component integration | Full `TransactionSafetyAgent.run()` with LLM, tools, RAG, Pydantic validation, and guardrails working together |
+| End-to-end evaluation | `tests/transaction_safety/evaluation/e2e/` | Yes | Slow | Full-agent quality evaluation | Final verdict quality, risk classification, and LLM-as-a-judge scoring over full agent outputs |
+| Component-level RAG evaluation | `tests/transaction_safety/evaluation/component/rag/` | Yes | Slow | RAG component evaluation | Retrieval relevance, contextual precision/recall, answer relevancy, and groundedness |
 
 ### Commands
 
@@ -147,20 +149,17 @@ pytest tests/transaction_safety/unit/
 # integration — requires OPENAI_API_KEY
 pytest tests/transaction_safety/integration/ -v
 
-# guardrails — no API key, tests guard logic directly
-pytest tests/transaction_safety/guardrails/
-
-# unit + guardrails + coverage report
-pytest tests/transaction_safety/unit/ tests/transaction_safety/guardrails/ \
+# unit + guardrail component tests + coverage report
+pytest tests/transaction_safety/unit/ \
   --cov=agents/transaction_safety --cov-report=term-missing
 
 # skip slow/API tests
 pytest -m "not integration and not evaluation"
 
-# run a specific layer
+# run by marker
 pytest -m integration
-pytest -m guardrails
 pytest -m evaluation
+pytest -m guardrails  # guardrail component tests inside unit/
 ```
 
 ---
@@ -204,7 +203,7 @@ Input guards return `(None, error_message)` before any model call. Output and to
 Presidio requires a spaCy language model. Run once after `pip install`:
 
 ```bash
-python -m spacy download en_core_web_lg
+python -m spacy download en_core_web_sm
 ```
 
 Every guard has one method: `check(text_or_result) -> GuardResult(passed, error)`.
@@ -226,7 +225,7 @@ The evaluation layer measures agent quality against a golden set of known inputs
 | Recall | Of all actually risky inputs, how many were caught |
 | F1 | Harmonic mean of precision and recall — the primary metric |
 | ROC-AUC | Quality of `confidence` as a probability score across all thresholds |
-| Confusion matrix | Full breakdown of SAFE/FLAGGED/UNKNOWN predictions vs. actuals |
+| Confusion matrix | Full breakdown of SAFE/FLAGGED/UNKNOWN/ESCALATE predictions vs. actuals |
 | Retry rate | % of runs that needed a Pydantic validation retry |
 | Guard trigger rate | % of inputs blocked by each guard |
 | Latency | p50/p95 run time |

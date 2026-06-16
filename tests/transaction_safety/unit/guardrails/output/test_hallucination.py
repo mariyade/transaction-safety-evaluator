@@ -2,7 +2,7 @@ import pytest
 
 from agents.transaction_safety.guardrails.output.hallucination_guard import HallucinationGuard
 
-pytestmark = pytest.mark.guardrails
+pytestmark = [pytest.mark.unit, pytest.mark.guardrails]
 
 # Mock NLI functions — inject instead of downloading the model
 _ALWAYS_ENTAILS = lambda ctx, claim: {"entailment": 0.92, "neutral": 0.06, "contradiction": 0.02}
@@ -11,6 +11,7 @@ _ALWAYS_NEUTRAL = lambda ctx, claim: {"entailment": 0.05, "neutral": 0.90, "cont
 
 
 class TestHallucinationGuard:
+    
     def test_supported_reasoning_passes(self):
         guard = HallucinationGuard(nli_fn=_ALWAYS_ENTAILS)
         result = guard.check(

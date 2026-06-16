@@ -12,8 +12,8 @@ LLMTestCase = deepeval_test_case.LLMTestCase
 SingleTurnParams = deepeval_test_case.SingleTurnParams
 
 from agents.transaction_safety.knowledge_base import retrieve
-from agents.transaction_safety.schemas import AddressInput
-from agents.transaction_safety.schemas import FreeTextInput
+from agents.transaction_safety.pydantic_models import AddressInput
+from agents.transaction_safety.pydantic_models import FreeTextInput
 
 pytestmark = pytest.mark.evaluation
 

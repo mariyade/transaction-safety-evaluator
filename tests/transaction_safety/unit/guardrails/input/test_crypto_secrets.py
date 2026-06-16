@@ -2,7 +2,7 @@ import pytest
 
 from agents.transaction_safety.guardrails.input.crypto_secrets_guard import CryptoSecretsGuard
 
-pytestmark = pytest.mark.guardrails
+pytestmark = [pytest.mark.unit, pytest.mark.guardrails]
 
 
 class TestCryptoSecretsGuard:

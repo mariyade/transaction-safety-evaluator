@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from agents.transaction_safety import tools
-from agents.transaction_safety.schemas import AssessRiskArgs, RetrieveDocsArgs
+from agents.transaction_safety.pydantic_models import AssessRiskArgs, RetrieveDocsArgs
 from agents.transaction_safety.tools import ToolCall
 
 pytestmark = pytest.mark.unit

@@ -26,7 +26,7 @@ class BaseAgentInput(BaseModel):
 class BaseAgentOutput(BaseModel):
     """Base output returned by the agent."""
 
-    verdict: str = Field(..., description="Outcome of the evaluation, e.g. SAFE, FLAGGED, UNKNOWN")
+    verdict: str = Field(..., description="Outcome of the evaluation, e.g. SAFE, FLAGGED, UNKNOWN, ESCALATE")
     confidence: float = Field(..., description="Confidence score between 0.0 and 1.0")
 
     @field_validator("confidence")
@@ -42,7 +42,7 @@ class FreeTextInput(BaseAgentInput):
 
 
 class BaseToolArgs(BaseModel):
-    """Type marker for tool input schemas."""
+    """Type marker for tool input Pydantic models."""
     pass
 
 
@@ -84,7 +84,7 @@ class RiskFactor(BaseModel):
 
 
 class AddressValidationResult(BaseAgentOutput):
-    verdict: RiskVerdict = Field(..., description="Overall safety verdict: SAFE, FLAGGED, or UNKNOWN")
+    verdict: RiskVerdict = Field(..., description="Overall safety verdict: SAFE, FLAGGED, UNKNOWN, or ESCALATE")
     detected_format: str = Field(..., description="Address format detected, e.g. 'ERC-20', 'EOA', 'Solana base58', 'invalid'")
     reasoning: str = Field(..., description="Step-by-step explanation of how the verdict was reached")
     risk_factors: list[RiskFactor] = Field(

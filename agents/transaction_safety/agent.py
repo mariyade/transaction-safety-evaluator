@@ -8,9 +8,9 @@ from agents.transaction_safety.guardrails import (
 )
 from agents.transaction_safety.llm import LLMClient, OpenAIChatClient
 from agents.transaction_safety.logger import get_logger
-from agents.transaction_safety.pydantic_validator import validate_response_with_retries
+from agents.transaction_safety.pydantic_output_validator import validate_response_with_retries
 from agents.transaction_safety.prompts import SYSTEM_PROMPT
-from agents.transaction_safety.schemas import AddressInput, AddressValidationResult, FreeTextInput
+from agents.transaction_safety.pydantic_models import AddressInput, AddressValidationResult, FreeTextInput
 from agents.transaction_safety.tools import TOOLS_SCHEMA, execute_tool_call
 
 logger = get_logger(__name__)

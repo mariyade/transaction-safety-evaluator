@@ -1,7 +1,7 @@
 from agents.transaction_safety.agent import TransactionSafetyAgent
-from agents.transaction_safety.schemas import AddressInput
+from agents.transaction_safety.pydantic_models import AddressInput
 from agents.transaction_safety.logger import get_logger
-from agents.transaction_safety.schemas import FreeTextInput
+from agents.transaction_safety.pydantic_models import FreeTextInput
 
 logger = get_logger(__name__)
 
@@ -20,7 +20,7 @@ COMPLEX_CASES = [
 ]
 
 for case in STRUCTURED_CASES:
-    label = getattr(case, "address", None) or case.text[:60]
+    label = getattr(case, "address", None) or case.text[:100]
     logger.info("=== %s ===", label)
     result, error = agent.run(case)
     if error:

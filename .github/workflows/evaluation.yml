@@ -1,12 +1,10 @@
 name: Evaluation
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
-  # ── 1. Integration tests ────────────────────────────────────────────────────
+  # 1. Integration tests
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
@@ -29,8 +27,9 @@ jobs:
 
       - name: Run integration tests
         run: |
+          mkdir -p evaluation_results
           pytest -m integration \
-            --json-report evaluation_results/integration.json \
+            --json-report --json-report-file=evaluation_results/integration.json \
             -v --tb=short
 
       - name: Upload integration report
@@ -40,9 +39,9 @@ jobs:
           name: integration-report-${{ github.run_id }}
           path: evaluation_results/integration.json
 
-  # ── 2. Risk-classification evals (sklearn, no LLM judge) ───────────────────
+  # 2. End-to-end risk classification evaluation
   risk-classification:
-    name: Risk Classification Evals
+    name: E2E Risk Classification Evaluation
     runs-on: ubuntu-latest
     needs: integration
     env:
@@ -62,10 +61,11 @@ jobs:
       - name: Download spaCy model
         run: python -m spacy download en_core_web_sm
 
-      - name: Run risk-classification evals
+      - name: Run E2E risk classification evaluation
         run: |
+          mkdir -p evaluation_results
           pytest tests/transaction_safety/evaluation/e2e/test_risk_classification.py \
-            --json-report evaluation_results/risk_classification.json \
+            --json-report --json-report-file=evaluation_results/risk_classification.json \
             -v --tb=short
 
       - name: Upload risk-classification report
@@ -75,7 +75,43 @@ jobs:
           name: risk-classification-report-${{ github.run_id }}
           path: evaluation_results/risk_classification.json
 
-  # ── 3. deepeval LLM-judge quality evals ────────────────────────────────────
+  # 3. Component-level RAG evals
+  rag-component:
+    name: RAG Component Evals
+    runs-on: ubuntu-latest
+    needs: integration
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download spaCy model
+        run: python -m spacy download en_core_web_sm
+
+      - name: Run RAG component evals
+        run: |
+          mkdir -p evaluation_results
+          pytest tests/transaction_safety/evaluation/component/rag/test_rag_quality.py \
+            --json-report --json-report-file=evaluation_results/rag_component.json \
+            -v --tb=short
+
+      - name: Upload RAG component report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-component-report-${{ github.run_id }}
+          path: evaluation_results/rag_component.json
+
+  # 4. DeepEval LLM-judge quality evals
   deepeval-quality:
     name: DeepEval Quality Evals
     runs-on: ubuntu-latest

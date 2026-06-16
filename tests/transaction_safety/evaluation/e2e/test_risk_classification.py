@@ -6,8 +6,8 @@ f1_score = sklearn_metrics.f1_score
 recall_score = sklearn_metrics.recall_score
 roc_auc_score = sklearn_metrics.roc_auc_score
 
-from agents.transaction_safety.schemas import AddressInput
-from agents.transaction_safety.schemas import FreeTextInput
+from agents.transaction_safety.pydantic_models import AddressInput
+from agents.transaction_safety.pydantic_models import FreeTextInput
 
 pytestmark = pytest.mark.evaluation
 

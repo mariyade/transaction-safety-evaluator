@@ -1,9 +1,9 @@
 import pytest
 
 from agents.transaction_safety.guardrails.output.verdict_guard import VerdictGuard
-from agents.transaction_safety.schemas import AddressValidationResult, RiskFactor
+from agents.transaction_safety.pydantic_models import AddressValidationResult, RiskFactor
 
-pytestmark = pytest.mark.guardrails
+pytestmark = [pytest.mark.unit, pytest.mark.guardrails]
 
 
 def _make_result(**kwargs) -> AddressValidationResult:

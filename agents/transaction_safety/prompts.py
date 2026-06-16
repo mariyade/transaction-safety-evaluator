@@ -1,6 +1,6 @@
 import json
 
-from agents.transaction_safety.schemas import AddressValidationResult
+from agents.transaction_safety.pydantic_models import AddressValidationResult
 
 OUTPUT_SCHEMA = json.dumps(AddressValidationResult.model_json_schema(), indent=2)
 

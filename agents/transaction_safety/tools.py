@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from agents.transaction_safety.knowledge_base import retrieve
 from agents.transaction_safety.logger import get_logger
-from agents.transaction_safety.schemas import AssessRiskArgs, BaseToolArgs, RetrieveDocsArgs
+from agents.transaction_safety.pydantic_models import AssessRiskArgs, BaseToolArgs, RetrieveDocsArgs
 
 logger = get_logger(__name__)
 

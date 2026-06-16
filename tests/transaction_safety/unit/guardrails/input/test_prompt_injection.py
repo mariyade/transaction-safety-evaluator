@@ -2,7 +2,7 @@ import pytest
 
 from agents.transaction_safety.guardrails.input.prompt_injection_guard import PromptInjectionGuard
 
-pytestmark = pytest.mark.guardrails
+pytestmark = [pytest.mark.unit, pytest.mark.guardrails]
 
 
 class TestPromptInjectionGuard:

@@ -18,7 +18,7 @@ Golden = deepeval_dataset.Golden
 LLMTestCase = deepeval_test_case.LLMTestCase
 
 from agents.transaction_safety.knowledge_base import retrieve
-from agents.transaction_safety.schemas import AddressInput, FreeTextInput
+from agents.transaction_safety.pydantic_models import AddressInput, FreeTextInput
 
 pytestmark = pytest.mark.evaluation
 

@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  unit-and-guardrails:
-    name: Unit & Guardrails Tests
+  unit:
+    name: Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -28,14 +28,9 @@ jobs:
 
       - name: Run unit tests
         run: |
-          pytest -m unit \
-            --json-report evaluation_results/unit.json \
-            -v --tb=short
-
-      - name: Run guardrails tests
-        run: |
-          pytest -m guardrails \
-            --json-report evaluation_results/guardrails.json \
+          mkdir -p evaluation_results
+          pytest tests/transaction_safety/unit/ \
+            --json-report --json-report-file=evaluation_results/unit.json \
             -v --tb=short
 
       - name: Upload test reports
