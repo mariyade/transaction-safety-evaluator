@@ -1,6 +1,8 @@
 # ruff: noqa: E402
 import pytest
 
+from tests.transaction_safety.evaluation.helpers import run_agent
+
 sklearn_metrics = pytest.importorskip("sklearn.metrics")
 accuracy_score = sklearn_metrics.accuracy_score
 f1_score = sklearn_metrics.f1_score
@@ -50,9 +52,7 @@ GOLDEN_SET = [
 def eval_results(agent):
     results = []
     for inp, expected in GOLDEN_SET:
-        result, error = agent.run(inp)
-        assert error is None
-        assert result is not None
+        result = run_agent(agent, inp)
         results.append(
             {
                 "expected": expected,

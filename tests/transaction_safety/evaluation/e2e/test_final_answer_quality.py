@@ -1,6 +1,8 @@
 # ruff: noqa: E402
 import pytest
 
+from tests.transaction_safety.evaluation.helpers import retrieved_context, run_agent
+
 deepeval = pytest.importorskip("deepeval")
 deepeval_metrics = pytest.importorskip("deepeval.metrics")
 deepeval_test_case = pytest.importorskip("deepeval.test_case")
@@ -12,28 +14,16 @@ HallucinationMetric = deepeval_metrics.HallucinationMetric
 LLMTestCase = deepeval_test_case.LLMTestCase
 SingleTurnParams = deepeval_test_case.SingleTurnParams
 
-from agents.transaction_safety.knowledge_base import retrieve
 from agents.transaction_safety.pydantic_models import AddressInput, FreeTextInput
 
 pytestmark = pytest.mark.evaluation
 
 
-def _run(agent, inp):
-    result, error = agent.run(inp)
-    assert error is None
-    assert result is not None
-    return result
-
-
-def _context(query: str) -> list[str]:
-    return [chunk["page_content"] for chunk in retrieve(query)]
-
-
 def test_faithfulness_ethereum_address(agent):
-    result = _run(
+    result = run_agent(
         agent, AddressInput(address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain="ethereum")
     )
-    ctx = _context("ethereum address format 0x hexadecimal")
+    ctx = retrieved_context("ethereum address format 0x hexadecimal")
     tc = LLMTestCase(
         input="Evaluate this address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 on ethereum",
         actual_output=result.reasoning if result else "",
@@ -43,11 +33,11 @@ def test_faithfulness_ethereum_address(agent):
 
 
 def test_hallucination_solana_on_ethereum(agent):
-    result = _run(
+    result = run_agent(
         agent,
         AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"),
     )
-    ctx = _context("solana address format ethereum mismatch")
+    ctx = retrieved_context("solana address format ethereum mismatch")
     tc = LLMTestCase(
         input="Evaluate this address: 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM on ethereum",
         actual_output=result.reasoning if result else "",
@@ -58,7 +48,7 @@ def test_hallucination_solana_on_ethereum(agent):
 
 def test_answer_relevancy_scam_detection(agent):
     text = "Someone sent me a link to claim free USDC by approving a contract. Should I do it?"
-    result = _run(agent, FreeTextInput(text=text))
+    result = run_agent(agent, FreeTextInput(text=text))
     tc = LLMTestCase(
         input=text,
         actual_output=result.reasoning if result else "",
@@ -67,11 +57,11 @@ def test_answer_relevancy_scam_detection(agent):
 
 
 def test_format_chain_consistency(agent):
-    result = _run(
+    result = run_agent(
         agent,
         AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"),
     )
-    ctx = _context("solana address format ethereum compatibility")
+    ctx = retrieved_context("solana address format ethereum compatibility")
     tc = LLMTestCase(
         input="Evaluate this address: 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM on ethereum",
         actual_output=result.reasoning if result else "",
