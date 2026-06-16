@@ -146,6 +146,12 @@ Tests are split by scope, cost, and whether they exercise the whole agent or a s
 # lint only — no API key
 ruff check .
 
+# run all pre-commit checks locally
+pre-commit run --all-files
+
+# install git hooks so checks run before each commit
+pre-commit install
+
 # unit only — no API key, runs in CI on every commit
 pytest tests/transaction_safety/unit/
 

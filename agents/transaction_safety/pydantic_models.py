@@ -26,7 +26,9 @@ class BaseAgentInput(BaseModel):
 class BaseAgentOutput(BaseModel):
     """Base output returned by the agent."""
 
-    verdict: str = Field(..., description="Outcome of the evaluation, e.g. SAFE, FLAGGED, UNKNOWN, ESCALATE")
+    verdict: str = Field(
+        ..., description="Outcome of the evaluation, e.g. SAFE, FLAGGED, UNKNOWN, ESCALATE"
+    )
     confidence: float = Field(..., description="Confidence score between 0.0 and 1.0")
 
     @field_validator("confidence")
@@ -38,20 +40,24 @@ class BaseAgentOutput(BaseModel):
 
 
 class FreeTextInput(BaseAgentInput):
-    text: str = Field(..., description="Free text input — question, scenario, or natural language query")
+    text: str = Field(
+        ..., description="Free text input — question, scenario, or natural language query"
+    )
 
 
 class BaseToolArgs(BaseModel):
     """Type marker for tool input Pydantic models."""
+
     pass
 
 
 class AddressInput(BaseAgentInput):
     address: str = Field(..., description="Blockchain wallet or contract address to evaluate")
-    chain: str = Field(..., description=f"Blockchain network. Supported: {', '.join(sorted(SUPPORTED_CHAINS))}")
+    chain: str = Field(
+        ..., description=f"Blockchain network. Supported: {', '.join(sorted(SUPPORTED_CHAINS))}"
+    )
     address_type: Literal["wallet", "contract", "unknown"] = Field(
-        "unknown",
-        description="Whether this is a wallet address, a smart contract, or unknown"
+        "unknown", description="Whether this is a wallet address, a smart contract, or unknown"
     )
 
     @field_validator("address")
@@ -79,17 +85,25 @@ class AddressInput(BaseAgentInput):
 
 
 class RiskFactor(BaseModel):
-    type: str = Field(..., description="Category of risk, e.g. 'phishing', 'known_scam', 'format_anomaly'")
+    type: str = Field(
+        ..., description="Category of risk, e.g. 'phishing', 'known_scam', 'format_anomaly'"
+    )
     description: str = Field(..., description="Human-readable explanation of this specific risk")
 
 
 class AddressValidationResult(BaseAgentOutput):
-    verdict: RiskVerdict = Field(..., description="Overall safety verdict: SAFE, FLAGGED, UNKNOWN, or ESCALATE")
-    detected_format: str = Field(..., description="Address format detected, e.g. 'ERC-20', 'EOA', 'Solana base58', 'invalid'")
-    reasoning: str = Field(..., description="Step-by-step explanation of how the verdict was reached")
+    verdict: RiskVerdict = Field(
+        ..., description="Overall safety verdict: SAFE, FLAGGED, UNKNOWN, or ESCALATE"
+    )
+    detected_format: str = Field(
+        ..., description="Address format detected, e.g. 'ERC-20', 'EOA', 'Solana base58', 'invalid'"
+    )
+    reasoning: str = Field(
+        ..., description="Step-by-step explanation of how the verdict was reached"
+    )
     risk_factors: list[RiskFactor] = Field(
         default_factory=list,
-        description="List of individual risk factors identified. Empty if verdict is SAFE."
+        description="List of individual risk factors identified. Empty if verdict is SAFE.",
     )
 
     @model_validator(mode="after")
@@ -100,7 +114,9 @@ class AddressValidationResult(BaseAgentOutput):
 
 
 class RetrieveDocsArgs(BaseToolArgs):
-    query: str = Field(..., description="Search query to look up in the address format knowledge base")
+    query: str = Field(
+        ..., description="Search query to look up in the address format knowledge base"
+    )
     chain: str | None = Field(None, description="Optional chain filter to narrow results")
 
 

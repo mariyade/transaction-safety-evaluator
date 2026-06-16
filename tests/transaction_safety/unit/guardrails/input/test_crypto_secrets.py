@@ -39,7 +39,9 @@ class TestCryptoSecretsGuard:
         assert not result.passed
 
     def test_seed_phrase_12_words_blocked(self):
-        seed = "abandon ability able about above absent absorb abstract absurd abuse access accident"
+        seed = (
+            "abandon ability able about above absent absorb abstract absurd abuse access accident"
+        )
         result = self.guard.check(seed)
         assert not result.passed
         assert "seed phrase" in result.error.lower()
@@ -53,7 +55,9 @@ class TestCryptoSecretsGuard:
         assert not result.passed
 
     def test_seed_phrase_embedded_in_text_blocked(self):
-        seed = "abandon ability able about above absent absorb abstract absurd abuse access accident"
+        seed = (
+            "abandon ability able about above absent absorb abstract absurd abuse access accident"
+        )
         result = self.guard.check(f"Please check my wallet. My seed phrase is: {seed}")
         assert not result.passed
 

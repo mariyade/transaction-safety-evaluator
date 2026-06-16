@@ -56,10 +56,7 @@ class OpenAIChatClient:
             temperature=self.temperature,
         )
         message = response.choices[0].message
-        tool_calls = [
-            ToolCall.from_openai(tool_call)
-            for tool_call in (message.tool_calls or [])
-        ]
+        tool_calls = [ToolCall.from_openai(tool_call) for tool_call in (message.tool_calls or [])]
         return ToolLoopTurn(
             content=message.content,
             tool_calls=tool_calls,

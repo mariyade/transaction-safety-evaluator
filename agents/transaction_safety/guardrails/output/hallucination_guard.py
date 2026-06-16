@@ -10,7 +10,7 @@ _MIN_CLAIM_LENGTH = 25
 
 
 def _split_into_claims(text: str) -> list[str]:
-    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
     return [s for s in sentences if len(s) >= _MIN_CLAIM_LENGTH]
 
 
@@ -58,7 +58,9 @@ class HallucinationGuard:
 
         return _predict
 
-    def _find_high_confidence_contradiction(self, chunks: list[str], claims: list[str]) -> tuple[str, float] | None:
+    def _find_high_confidence_contradiction(
+        self, chunks: list[str], claims: list[str]
+    ) -> tuple[str, float] | None:
         for chunk in chunks:
             for claim in claims:
                 scores = self._nli_fn(chunk, claim)
@@ -90,8 +92,5 @@ class HallucinationGuard:
         )
         return GuardResult(
             passed=False,
-            error=(
-                f"Output contradicts retrieved context "
-                f"(score={score:.2f}): '{claim[:80]}'"
-            ),
+            error=(f"Output contradicts retrieved context (score={score:.2f}): '{claim[:80]}'"),
         )

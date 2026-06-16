@@ -30,7 +30,9 @@ def _context(query: str) -> list[str]:
 
 
 def test_faithfulness_ethereum_address(agent):
-    result = _run(agent, AddressInput(address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain="ethereum"))
+    result = _run(
+        agent, AddressInput(address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain="ethereum")
+    )
     ctx = _context("ethereum address format 0x hexadecimal")
     tc = LLMTestCase(
         input="Evaluate this address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 on ethereum",
@@ -41,7 +43,10 @@ def test_faithfulness_ethereum_address(agent):
 
 
 def test_hallucination_solana_on_ethereum(agent):
-    result = _run(agent, AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"))
+    result = _run(
+        agent,
+        AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"),
+    )
     ctx = _context("solana address format ethereum mismatch")
     tc = LLMTestCase(
         input="Evaluate this address: 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM on ethereum",
@@ -62,24 +67,32 @@ def test_answer_relevancy_scam_detection(agent):
 
 
 def test_format_chain_consistency(agent):
-    result = _run(agent, AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"))
+    result = _run(
+        agent,
+        AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"),
+    )
     ctx = _context("solana address format ethereum compatibility")
     tc = LLMTestCase(
         input="Evaluate this address: 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM on ethereum",
         actual_output=result.reasoning if result else "",
         retrieval_context=ctx,
     )
-    assert_test(tc, [GEval(
-        name="Format-Chain Consistency",
-        evaluation_steps=[
-            "Check if the reasoning identifies the address as Solana format (Base58, not starting with 0x)",
-            "Check if the reasoning explains why a Solana address is incompatible with Ethereum",
-            "Check that the verdict reflects this format-chain mismatch as a risk",
+    assert_test(
+        tc,
+        [
+            GEval(
+                name="Format-Chain Consistency",
+                evaluation_steps=[
+                    "Check if the reasoning identifies the address as Solana format (Base58, not starting with 0x)",
+                    "Check if the reasoning explains why a Solana address is incompatible with Ethereum",
+                    "Check that the verdict reflects this format-chain mismatch as a risk",
+                ],
+                evaluation_params=[
+                    SingleTurnParams.INPUT,
+                    SingleTurnParams.ACTUAL_OUTPUT,
+                    SingleTurnParams.RETRIEVAL_CONTEXT,
+                ],
+                threshold=0.5,
+            )
         ],
-        evaluation_params=[
-            SingleTurnParams.INPUT,
-            SingleTurnParams.ACTUAL_OUTPUT,
-            SingleTurnParams.RETRIEVAL_CONTEXT,
-        ],
-        threshold=0.5,
-    )])
+    )

@@ -60,8 +60,14 @@ class ToolRegistry(dict[str, ToolDefinition]):
 RISKY_PATTERNS = [
     (r"unlimited|max uint256", "CRITICAL: Unlimited token approval detected."),
     (r"setapprovalforall", "CRITICAL: setApprovalForAll — commonly used in phishing attacks."),
-    (r"airdrop.*claim|free.*mint|claim.*free|free.*usdc|free.*token", "HIGH: Unsolicited free token claim — common phishing."),
-    (r"approv.*contract|link.*approv|sign.*contract", "CRITICAL: Unsolicited contract approval request — common drain attack."),
+    (
+        r"airdrop.*claim|free.*mint|claim.*free|free.*usdc|free.*token",
+        "HIGH: Unsolicited free token claim — common phishing.",
+    ),
+    (
+        r"approv.*contract|link.*approv|sign.*contract",
+        "CRITICAL: Unsolicited contract approval request — common drain attack.",
+    ),
     (r"double|2x|guaranteed return", "CRITICAL: Guaranteed return promise — scam pattern."),
     (r"send.*first|deposit.*first", "CRITICAL: 'Send first to receive' — always a scam."),
 ]
@@ -92,26 +98,24 @@ def _format_findings(findings: list[str]) -> str:
 
 def tool_assess_risk(args: AssessRiskArgs) -> str:
     scan_text = _risk_scan_text(args)
-    findings = [
-        message
-        for pattern, message in RISKY_PATTERNS
-        if re.search(pattern, scan_text)
-    ]
+    findings = [message for pattern, message in RISKY_PATTERNS if re.search(pattern, scan_text)]
     return _format_findings(findings)
 
 
-TOOLS = ToolRegistry({
-    "retrieve_docs": ToolDefinition(
-        description="Retrieve documentation about address formats for a given blockchain.",
-        args_model=RetrieveDocsArgs,
-        handler=tool_retrieve_docs,
-    ),
-    "assess_risk": ToolDefinition(
-        description="Assess a blockchain address for known scam and phishing patterns.",
-        args_model=AssessRiskArgs,
-        handler=tool_assess_risk,
-    ),
-})
+TOOLS = ToolRegistry(
+    {
+        "retrieve_docs": ToolDefinition(
+            description="Retrieve documentation about address formats for a given blockchain.",
+            args_model=RetrieveDocsArgs,
+            handler=tool_retrieve_docs,
+        ),
+        "assess_risk": ToolDefinition(
+            description="Assess a blockchain address for known scam and phishing patterns.",
+            args_model=AssessRiskArgs,
+            handler=tool_assess_risk,
+        ),
+    }
+)
 
 TOOLS_SCHEMA = TOOLS.schema
 

@@ -12,13 +12,15 @@ from agents.transaction_safety.pydantic_output_validator import (
 
 pytestmark = pytest.mark.unit
 
-VALID_RESPONSE = json.dumps({
-    "verdict": "SAFE",
-    "confidence": 0.95,
-    "detected_format": "ERC-20",
-    "reasoning": "No risk found.",
-    "risk_factors": [],
-})
+VALID_RESPONSE = json.dumps(
+    {
+        "verdict": "SAFE",
+        "confidence": 0.95,
+        "detected_format": "ERC-20",
+        "reasoning": "No risk found.",
+        "risk_factors": [],
+    }
+)
 
 INVALID_RESPONSE = "this is not json"
 
@@ -36,22 +38,30 @@ class TestValidateWithModel:
         assert error is not None
 
     def test_missing_required_fields_returns_error(self):
-        result, error = validate_with_model(AddressValidationResult, json.dumps({"verdict": "SAFE"}))
+        result, error = validate_with_model(
+            AddressValidationResult, json.dumps({"verdict": "SAFE"})
+        )
         assert result is None
         assert "validation error" in error.lower()
 
 
 class TestCreateRetryPrompt:
     def test_contains_original_prompt(self):
-        prompt = create_retry_prompt("original", "bad response", "some error", AddressValidationResult)
+        prompt = create_retry_prompt(
+            "original", "bad response", "some error", AddressValidationResult
+        )
         assert "original" in prompt
 
     def test_contains_error_message(self):
-        prompt = create_retry_prompt("original", "bad response", "some error", AddressValidationResult)
+        prompt = create_retry_prompt(
+            "original", "bad response", "some error", AddressValidationResult
+        )
         assert "some error" in prompt
 
     def test_contains_schema(self):
-        prompt = create_retry_prompt("original", "bad response", "some error", AddressValidationResult)
+        prompt = create_retry_prompt(
+            "original", "bad response", "some error", AddressValidationResult
+        )
         assert "verdict" in prompt
         assert "confidence" in prompt
 

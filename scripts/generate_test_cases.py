@@ -234,7 +234,9 @@ def write_csv(cases: list[TestCase], output: Path | None) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate seed test cases for an agent")
-    parser.add_argument("--agent", default="transaction_safety", help="Agent name to generate cases for")
+    parser.add_argument(
+        "--agent", default="transaction_safety", help="Agent name to generate cases for"
+    )
     parser.add_argument("--count", type=int, default=50, help="Number of cases to generate")
     parser.add_argument("--format", choices=("json", "csv"), default="json", help="Output format")
     parser.add_argument("--output", type=Path, help="Optional output file path")

@@ -89,7 +89,9 @@ def validate_response_with_retries(
 
         if validation_error:
             if attempt < n_retry:
-                logger.warning("validation retry %d/%d — %s", attempt + 1, n_retry, validation_error)
+                logger.warning(
+                    "validation retry %d/%d — %s", attempt + 1, n_retry, validation_error
+                )
                 retry_prompt = create_retry_prompt(
                     original_prompt=retry_prompt_context,
                     original_response=response_content,

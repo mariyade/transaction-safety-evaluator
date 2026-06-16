@@ -17,11 +17,32 @@ GOLDEN_SET = [
     (AddressInput(address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain="ethereum"), "SAFE"),
     (AddressInput(address="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", chain="solana"), "SAFE"),
     (AddressInput(address="0xdAC17F958D2ee523a2206206994597C13D831ec7", chain="polygon"), "SAFE"),
-    (FreeTextInput(text="Is 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 a valid Ethereum USDC contract?"), "SAFE"),
-    (AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"), "FLAGGED"),
-    (FreeTextInput(text="Someone sent me a link to claim free USDC by approving a contract. Should I do it?"), "FLAGGED"),
-    (FreeTextInput(text="A DeFi site wants unlimited USDC approval for 500% APY — is this safe?"), "FLAGGED"),
-    (FreeTextInput(text="Send 0.1 ETH first and I'll send you 0.5 ETH back — guaranteed return"), "FLAGGED"),
+    (
+        FreeTextInput(
+            text="Is 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 a valid Ethereum USDC contract?"
+        ),
+        "SAFE",
+    ),
+    (
+        AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"),
+        "FLAGGED",
+    ),
+    (
+        FreeTextInput(
+            text="Someone sent me a link to claim free USDC by approving a contract. Should I do it?"
+        ),
+        "FLAGGED",
+    ),
+    (
+        FreeTextInput(
+            text="A DeFi site wants unlimited USDC approval for 500% APY — is this safe?"
+        ),
+        "FLAGGED",
+    ),
+    (
+        FreeTextInput(text="Send 0.1 ETH first and I'll send you 0.5 ETH back — guaranteed return"),
+        "FLAGGED",
+    ),
 ]
 
 
@@ -32,11 +53,13 @@ def eval_results(agent):
         result, error = agent.run(inp)
         assert error is None
         assert result is not None
-        results.append({
-            "expected": expected,
-            "predicted": result.verdict,
-            "confidence": result.confidence,
-        })
+        results.append(
+            {
+                "expected": expected,
+                "predicted": result.verdict,
+                "confidence": result.confidence,
+            }
+        )
     return results
 
 

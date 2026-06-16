@@ -23,7 +23,6 @@ REQUIRED_TOOLS = {"retrieve_docs", "assess_risk"}
 
 
 class TransactionSafetyAgent:
-
     def __init__(
         self,
         model: str = MODEL,
@@ -84,15 +83,19 @@ class TransactionSafetyAgent:
                 tool_result = execute_tool_call(tool_call)
                 if tool_call.name in REQUIRED_TOOLS:
                     self._grounding_context.append(tool_result)
-                messages.append({
-                    "role": "tool",
-                    "content": tool_result,
-                    "tool_call_id": tool_call.id,
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "content": tool_result,
+                        "tool_call_id": tool_call.id,
+                    }
+                )
 
         raise RuntimeError(f"Tool loop exceeded {self.max_tool_rounds} rounds")
 
-    def run(self, input: AddressInput | FreeTextInput) -> tuple[AddressValidationResult | None, str | None]:
+    def run(
+        self, input: AddressInput | FreeTextInput
+    ) -> tuple[AddressValidationResult | None, str | None]:
         # Normalize supported input types into a single user message for the LLM.
         if isinstance(input, AddressInput):
             user_message = f"Evaluate this address: {input.address} on {input.chain}"
@@ -105,9 +108,11 @@ class TransactionSafetyAgent:
         self._called_tools = set()
 
         # Block unsafe input before any LLM call.
-        guards = self._input_guards if isinstance(input, FreeTextInput) else [
-            g for g in self._input_guards if not isinstance(g, PIIGuard)
-        ]
+        guards = (
+            self._input_guards
+            if isinstance(input, FreeTextInput)
+            else [g for g in self._input_guards if not isinstance(g, PIIGuard)]
+        )
         for guard in guards:
             guard_result = guard.check(user_message)
             if not guard_result.passed:

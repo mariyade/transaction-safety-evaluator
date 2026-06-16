@@ -26,10 +26,12 @@ def test_missing_required_tools_escalates_before_structured_validation():
     agent = _agent_without_heavy_init()
     agent._run_tool_loop = MethodType(lambda self, message: "final answer without tools", agent)
 
-    result, error = agent.run(AddressInput(
-        address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        chain="ethereum",
-    ))
+    result, error = agent.run(
+        AddressInput(
+            address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            chain="ethereum",
+        )
+    )
 
     assert error is None
     assert result.verdict == "ESCALATE"
@@ -46,10 +48,12 @@ def test_tool_loop_runtime_error_escalates():
 
     agent._run_tool_loop = MethodType(raise_tool_loop_error, agent)
 
-    result, error = agent.run(AddressInput(
-        address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-        chain="ethereum",
-    ))
+    result, error = agent.run(
+        AddressInput(
+            address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            chain="ethereum",
+        )
+    )
 
     assert error is None
     assert result.verdict == "ESCALATE"

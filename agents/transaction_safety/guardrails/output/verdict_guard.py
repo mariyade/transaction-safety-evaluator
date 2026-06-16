@@ -24,7 +24,9 @@ class VerdictGuard:
         if result.verdict == "FLAGGED":
             for rf in result.risk_factors:
                 if len(rf.description.strip()) < 10:
-                    logger.warning("output guard: risk factor description too short — '%s'", rf.description)
+                    logger.warning(
+                        "output guard: risk factor description too short — '%s'", rf.description
+                    )
                     return GuardResult(
                         passed=False,
                         error=f"Risk factor description is too vague: '{rf.description}'",

@@ -18,7 +18,7 @@ DEFAULT_ENTITIES = [
 
 
 class PIIGuard:
-    """Detects general PII using Microsoft Presidio """
+    """Detects general PII using Microsoft Presidio"""
 
     def __init__(
         self,

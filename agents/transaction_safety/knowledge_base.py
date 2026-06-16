@@ -5,7 +5,9 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 DOCS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "docs")
-PERSIST_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "chroma_db", "transaction_safety_sections_v1")
+PERSIST_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "..", "chroma_db", "transaction_safety_sections_v1"
+)
 RETRIEVAL_K = 2
 
 _retriever = None
@@ -55,6 +57,5 @@ def get_retriever():
 def retrieve(query: str) -> list[dict]:
     docs = get_retriever().invoke(query)
     return [
-        {"page_content": doc.page_content, "source": doc.metadata.get("source", "")}
-        for doc in docs
+        {"page_content": doc.page_content, "source": doc.metadata.get("source", "")} for doc in docs
     ]

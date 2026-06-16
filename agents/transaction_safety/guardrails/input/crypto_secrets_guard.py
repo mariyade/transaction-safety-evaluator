@@ -7,14 +7,14 @@ logger = get_logger(__name__)
 
 # Ethereum/EVM private key: exactly 64 hex chars, optionally 0x-prefixed.
 # Deliberately excludes 0x + 40-char addresses (length is different).
-_ETH_PRIVATE_KEY = re.compile(r'(?:0x)?[0-9a-fA-F]{64}(?![0-9a-fA-F])')
+_ETH_PRIVATE_KEY = re.compile(r"(?:0x)?[0-9a-fA-F]{64}(?![0-9a-fA-F])")
 
 # Bitcoin WIF private key: starts with 5, K, or L followed by 50-51 base58 chars
-_WIF_KEY = re.compile(r'\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b')
+_WIF_KEY = re.compile(r"\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b")
 
 # Solana private key: base58-encoded 64-byte key is typically 86-88 chars.
 # Solana addresses are 32-44 chars, so this range avoids false positives.
-_SOL_PRIVATE_KEY = re.compile(r'\b[1-9A-HJ-NP-Za-km-z]{86,88}\b')
+_SOL_PRIVATE_KEY = re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{86,88}\b")
 
 _PRIVATE_KEY_PATTERNS = [
     ("Ethereum/EVM", _ETH_PRIVATE_KEY),
@@ -23,7 +23,7 @@ _PRIVATE_KEY_PATTERNS = [
 ]
 
 # Matches a single pure lowercase word of 3-8 letters (BIP-39 word shape)
-_BIP39_WORD = re.compile(r'^[a-z]{3,8}$')
+_BIP39_WORD = re.compile(r"^[a-z]{3,8}$")
 
 # Valid BIP-39 seed phrase lengths
 _SEED_LENGTHS = {12, 15, 18, 21, 24}

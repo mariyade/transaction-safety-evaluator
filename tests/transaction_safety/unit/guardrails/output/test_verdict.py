@@ -31,7 +31,9 @@ class TestVerdictGuard:
         result = _make_result(
             verdict="FLAGGED",
             confidence=0.85,
-            risk_factors=[RiskFactor(type="phishing", description="Address matches known phishing contract")],
+            risk_factors=[
+                RiskFactor(type="phishing", description="Address matches known phishing contract")
+            ],
         )
         assert self.guard.check(result).passed
 
@@ -54,7 +56,9 @@ class TestVerdictGuard:
         result = _make_result(
             verdict="FLAGGED",
             confidence=0.3,
-            risk_factors=[RiskFactor(type="phishing", description="Matches known phishing address list")],
+            risk_factors=[
+                RiskFactor(type="phishing", description="Matches known phishing address list")
+            ],
         )
         guard_result = self.guard.check(result)
         assert not guard_result.passed
@@ -68,7 +72,11 @@ class TestVerdictGuard:
         result = _make_result(
             verdict="FLAGGED",
             confidence=0.4,
-            risk_factors=[RiskFactor(type="format_anomaly", description="Solana address used on Ethereum chain")],
+            risk_factors=[
+                RiskFactor(
+                    type="format_anomaly", description="Solana address used on Ethereum chain"
+                )
+            ],
         )
         assert self.guard.check(result).passed
 
@@ -76,6 +84,10 @@ class TestVerdictGuard:
         result = _make_result(
             verdict="FLAGGED",
             confidence=0.39,
-            risk_factors=[RiskFactor(type="format_anomaly", description="Solana address used on Ethereum chain")],
+            risk_factors=[
+                RiskFactor(
+                    type="format_anomaly", description="Solana address used on Ethereum chain"
+                )
+            ],
         )
         assert not self.guard.check(result).passed

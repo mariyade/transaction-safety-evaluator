@@ -14,7 +14,9 @@ class TestPromptInjectionGuard:
         assert result.passed
 
     def test_clean_freetext_passes(self):
-        result = self.guard.check("A DeFi site wants unlimited USDC approval for 500% APY — is this safe?")
+        result = self.guard.check(
+            "A DeFi site wants unlimited USDC approval for 500% APY — is this safe?"
+        )
         assert result.passed
 
     def test_ignore_instructions_blocked(self):

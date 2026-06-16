@@ -39,8 +39,12 @@ def _load_goldens(path: Path) -> EvaluationDataset:
     return EvaluationDataset(goldens=[Golden(**row) for row in rows])
 
 
-RAG_RETRIEVAL_DATASET = _load_goldens(REPO_ROOT / "datasets/transaction_safety/rag_retrieval_goldens.json")
-RAG_GENERATION_DATASET = _load_goldens(REPO_ROOT / "datasets/transaction_safety/rag_generation_goldens.json")
+RAG_RETRIEVAL_DATASET = _load_goldens(
+    REPO_ROOT / "datasets/transaction_safety/rag_retrieval_goldens.json"
+)
+RAG_GENERATION_DATASET = _load_goldens(
+    REPO_ROOT / "datasets/transaction_safety/rag_generation_goldens.json"
+)
 
 
 def _context(query: str) -> list[str]:
@@ -82,16 +86,22 @@ def _generation_test_case(agent, golden: Golden) -> LLMTestCase:
 
 @pytest.mark.parametrize("golden", RAG_RETRIEVAL_DATASET.goldens)
 def test_rag_retrieval_metrics(golden):
-    assert_test(_test_case(golden), [
-        ContextualRelevancyMetric(threshold=0.5),
-        ContextualPrecisionMetric(threshold=0.5),
-        ContextualRecallMetric(threshold=0.5),
-    ])
+    assert_test(
+        _test_case(golden),
+        [
+            ContextualRelevancyMetric(threshold=0.5),
+            ContextualPrecisionMetric(threshold=0.5),
+            ContextualRecallMetric(threshold=0.5),
+        ],
+    )
 
 
 @pytest.mark.parametrize("golden", RAG_GENERATION_DATASET.goldens)
 def test_rag_generation_metrics(agent, golden):
-    assert_test(_generation_test_case(agent, golden), [
-        FaithfulnessMetric(threshold=0.5),
-        AnswerRelevancyMetric(threshold=0.5),
-    ])
+    assert_test(
+        _generation_test_case(agent, golden),
+        [
+            FaithfulnessMetric(threshold=0.5),
+            AnswerRelevancyMetric(threshold=0.5),
+        ],
+    )
