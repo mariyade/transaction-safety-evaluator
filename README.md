@@ -221,7 +221,7 @@ Every guard has one method: `check(text_or_result) -> GuardResult(passed, error)
 
 ## Evaluation
 
-The evaluation layer measures agent quality against a golden set of known inputs and expected outputs. It runs offline — not on every request — typically before releasing a new prompt, model, or RAG update.
+The evaluation layer measures agent quality outside the runtime request path. It includes end-to-end checks against golden inputs and expected outcomes, plus component-level RAG checks for retrieval relevance, grounding, and context quality.
 
 ### Two types of evals
 
@@ -257,7 +257,8 @@ DeepEval provides many metrics, but this project uses a focused set aligned with
 
 Additional metrics should be added when a new agent, dataset, or failure mode requires them.
 
-**LLM-judge evals** — uses a second LLM (GPT-4) to score outputs. Slower and costs money. Run these when validating a major prompt or model change, not on every commit.
+**LLM-judge evals** — use a DeepEval judge model to score outputs.
+
 
 | Metric | Tool | What it measures |
 |---|---|---|
