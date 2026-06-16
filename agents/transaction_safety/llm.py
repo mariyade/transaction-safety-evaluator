@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Protocol
+
 from openai import OpenAI
+
 from agents.transaction_safety.config import OPENAI_API_KEY, TEMPERATURE
 from agents.transaction_safety.tools import ToolCall
 

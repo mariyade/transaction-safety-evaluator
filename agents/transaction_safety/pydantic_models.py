@@ -1,9 +1,9 @@
 import re
 import uuid
-from datetime import datetime, timezone
-from typing import Literal, Optional
-from pydantic import BaseModel, Field, field_validator, model_validator
+from datetime import UTC, datetime
+from typing import Literal
 
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 RiskVerdict = Literal["SAFE", "FLAGGED", "UNKNOWN", "ESCALATE"]
 
@@ -18,7 +18,7 @@ class BaseAgentInput(BaseModel):
         description="Unique identifier for this request, auto-generated if not provided",
     )
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         description="UTC timestamp of when this request was created",
     )
 
@@ -101,10 +101,10 @@ class AddressValidationResult(BaseAgentOutput):
 
 class RetrieveDocsArgs(BaseToolArgs):
     query: str = Field(..., description="Search query to look up in the address format knowledge base")
-    chain: Optional[str] = Field(None, description="Optional chain filter to narrow results")
+    chain: str | None = Field(None, description="Optional chain filter to narrow results")
 
 
 class AssessRiskArgs(BaseToolArgs):
     address: str = Field(..., description="The address to assess")
     chain: str = Field("unknown", description="The chain this address belongs to")
-    context: Optional[str] = Field(None, description="Any additional context retrieved from docs")
+    context: str | None = Field(None, description="Any additional context retrieved from docs")

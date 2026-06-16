@@ -1,7 +1,6 @@
 from agents.transaction_safety.agent import TransactionSafetyAgent
-from agents.transaction_safety.pydantic_models import AddressInput
 from agents.transaction_safety.logger import get_logger
-from agents.transaction_safety.pydantic_models import FreeTextInput
+from agents.transaction_safety.pydantic_models import AddressInput, FreeTextInput
 
 logger = get_logger(__name__)
 

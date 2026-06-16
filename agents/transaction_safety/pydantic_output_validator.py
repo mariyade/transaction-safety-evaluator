@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Optional, Type
+from collections.abc import Callable
 
 from pydantic import BaseModel, ValidationError
 
@@ -9,9 +9,9 @@ logger = get_logger(__name__)
 
 
 def validate_with_model(
-    data_model: Type[BaseModel],
+    data_model: type[BaseModel],
     llm_response: str,
-) -> tuple[Optional[BaseModel], Optional[str]]:
+) -> tuple[BaseModel | None, str | None]:
     """Try to parse an LLM response into a Pydantic model. Returns (data, None) or (None, error)."""
     try:
         validated_data = data_model.model_validate_json(llm_response)
@@ -26,7 +26,7 @@ def create_retry_prompt(
     original_prompt: str,
     original_response: str,
     error_message: str,
-    data_model: Type[BaseModel],
+    data_model: type[BaseModel],
 ) -> str:
     """Build a retry prompt with the original request, bad response, error, and required schema."""
     schema = json.dumps(data_model.model_json_schema(), indent=2)
@@ -58,10 +58,10 @@ Respond ONLY with valid JSON. Do not include any explanations or other text befo
 
 def validate_llm_response(
     prompt: str,
-    data_model: Type[BaseModel],
+    data_model: type[BaseModel],
     call_llm_fn: Callable[[str], str],
     n_retry: int = 5,
-) -> tuple[Optional[BaseModel], Optional[str]]:
+) -> tuple[BaseModel | None, str | None]:
     """Call an LLM, validate output against a Pydantic model, retry with error feedback on failure.
 
     call_llm_fn is injected so this works with any LLM provider.
@@ -79,10 +79,10 @@ def validate_llm_response(
 def validate_response_with_retries(
     response_content: str,
     retry_prompt_context: str,
-    data_model: Type[BaseModel],
+    data_model: type[BaseModel],
     call_llm_fn: Callable[[str], str],
     n_retry: int = 5,
-) -> tuple[Optional[BaseModel], Optional[str]]:
+) -> tuple[BaseModel | None, str | None]:
     """Validate an existing LLM response, calling the LLM again only to repair invalid JSON."""
     for attempt in range(n_retry + 1):
         validated_data, validation_error = validate_with_model(data_model, response_content)

@@ -3,8 +3,8 @@ from types import MethodType
 import pytest
 
 from agents.transaction_safety.agent import TransactionSafetyAgent
-from agents.transaction_safety.pydantic_models import AddressInput
 from agents.transaction_safety.guardrails.base import GuardResult
+from agents.transaction_safety.pydantic_models import AddressInput
 
 pytestmark = pytest.mark.unit
 

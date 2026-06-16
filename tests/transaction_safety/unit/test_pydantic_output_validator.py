@@ -1,15 +1,16 @@
 import json
+
 import pytest
 
 from agents.transaction_safety.pydantic_models import AddressValidationResult
-
-pytestmark = pytest.mark.unit
 from agents.transaction_safety.pydantic_output_validator import (
     create_retry_prompt,
     validate_llm_response,
     validate_response_with_retries,
     validate_with_model,
 )
+
+pytestmark = pytest.mark.unit
 
 VALID_RESPONSE = json.dumps({
     "verdict": "SAFE",

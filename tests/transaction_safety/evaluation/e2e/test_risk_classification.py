@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 import pytest
 
 sklearn_metrics = pytest.importorskip("sklearn.metrics")
@@ -6,8 +7,7 @@ f1_score = sklearn_metrics.f1_score
 recall_score = sklearn_metrics.recall_score
 roc_auc_score = sklearn_metrics.roc_auc_score
 
-from agents.transaction_safety.pydantic_models import AddressInput
-from agents.transaction_safety.pydantic_models import FreeTextInput
+from agents.transaction_safety.pydantic_models import AddressInput, FreeTextInput
 
 pytestmark = pytest.mark.evaluation
 

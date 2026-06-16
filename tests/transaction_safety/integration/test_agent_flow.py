@@ -1,8 +1,8 @@
 import pytest
+from pydantic import ValidationError
 
 from agents.transaction_safety.agent import TransactionSafetyAgent
-from agents.transaction_safety.pydantic_models import AddressInput
-from agents.transaction_safety.pydantic_models import FreeTextInput
+from agents.transaction_safety.pydantic_models import AddressInput, FreeTextInput
 
 pytestmark = pytest.mark.integration
 
@@ -53,7 +53,7 @@ def test_solana_address_on_ethereum_is_flagged_or_escalated(agent):
 
 
 def test_invalid_address_rejected_before_llm():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         AddressInput(address="not-an-address", chain="ethereum")
 
 

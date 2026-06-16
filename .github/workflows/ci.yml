@@ -26,6 +26,9 @@ jobs:
       - name: Download spaCy model
         run: python -m spacy download en_core_web_sm
 
+      - name: Run linting
+        run: ruff check .
+
       - name: Run unit tests
         run: |
           mkdir -p evaluation_results

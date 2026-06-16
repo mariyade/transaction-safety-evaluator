@@ -1,5 +1,3 @@
-from typing import Optional
-
 from agents.transaction_safety.guardrails.base import GuardResult
 from agents.transaction_safety.logger import get_logger
 
@@ -24,7 +22,7 @@ class PIIGuard:
 
     def __init__(
         self,
-        entities: Optional[list[str]] = None,
+        entities: list[str] | None = None,
         score_threshold: float = 0.5,
     ):
         from presidio_analyzer import AnalyzerEngine

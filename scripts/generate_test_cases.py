@@ -14,7 +14,6 @@ from itertools import cycle, islice
 from pathlib import Path
 from typing import Literal
 
-
 Verdict = Literal["SAFE", "FLAGGED", "UNKNOWN", "ESCALATE"]
 InputType = Literal["address", "free_text"]
 

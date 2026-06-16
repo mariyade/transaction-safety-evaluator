@@ -1,7 +1,11 @@
 import pytest
 from pydantic import ValidationError
 
-from agents.transaction_safety.pydantic_models import AddressInput, AddressValidationResult, RiskFactor
+from agents.transaction_safety.pydantic_models import (
+    AddressInput,
+    AddressValidationResult,
+    RiskFactor,
+)
 
 pytestmark = pytest.mark.unit
 

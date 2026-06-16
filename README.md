@@ -143,6 +143,9 @@ Tests are split by scope, cost, and whether they exercise the whole agent or a s
 ### Commands
 
 ```bash
+# lint only — no API key
+ruff check .
+
 # unit only — no API key, runs in CI on every commit
 pytest tests/transaction_safety/unit/
 

@@ -5,6 +5,7 @@ pytest
 pytest-cov
 pytest-timeout
 pytest-json-report
+ruff
 deepeval
 scikit-learn
 langchain-openai

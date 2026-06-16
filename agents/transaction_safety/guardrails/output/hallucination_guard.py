@@ -1,5 +1,5 @@
 import re
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from agents.transaction_safety.guardrails.base import GuardResult
 from agents.transaction_safety.logger import get_logger
@@ -36,7 +36,7 @@ class HallucinationGuard:
     def __init__(
         self,
         contradiction_threshold: float = 0.85,
-        nli_fn: Optional[Callable[[str, str], dict[str, float]]] = None,
+        nli_fn: Callable[[str, str], dict[str, float]] | None = None,
     ):
         self._threshold = contradiction_threshold
         self._nli_fn = nli_fn or self._load_nli()

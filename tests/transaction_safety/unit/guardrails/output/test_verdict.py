@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from agents.transaction_safety.guardrails.output.verdict_guard import VerdictGuard
 from agents.transaction_safety.pydantic_models import AddressValidationResult, RiskFactor
@@ -36,7 +37,7 @@ class TestVerdictGuard:
 
     def test_flagged_with_no_risk_factors_blocked_by_pydantic(self):
         # Pydantic's model_validator enforces this before VerdictGuard even sees it
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             _make_result(verdict="FLAGGED", confidence=0.8, risk_factors=[])
 
     def test_flagged_with_trivial_description_blocked(self):
