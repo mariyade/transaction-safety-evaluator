@@ -2,7 +2,7 @@
 
 A transaction-safety agent that implements AI testing and evaluation approaches for LLM agent and RAG workflows.
 
-<img src="docs/guardrails_pipeline.png" alt="Guardrails Pipeline" width="100%">
+<img src="docs/guardrails_pipeline.png" alt="Guardrails Pipeline" width="900">
 
 ---
 
