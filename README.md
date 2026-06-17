@@ -221,46 +221,27 @@ Every guard has one method: `check(text_or_result) -> GuardResult(passed, error)
 
 The evaluation layer measures agent quality outside the runtime request path. It includes end-to-end checks against golden inputs and expected outcomes, plus component-level RAG checks for retrieval relevance, grounding, and context quality.
 
-### Two types of evals
+### Metrics At A Glance
 
-**Code-based evals** — scikit-learn metric checks over full-agent predictions from a golden set. They call `TransactionSafetyAgent.run()`, so they require `OPENAI_API_KEY` and the same model setup as the integration smoke test.
+The project uses two evaluation styles: code-based metrics for verdict classification, and DeepEval metrics for reasoning, grounding, hallucination, tool use, and RAG quality. These evals call the agent, retriever, or judge model, so they require `OPENAI_API_KEY`.
 
-| Metric | What it measures |
-|---|---|
-| Accuracy | % of verdicts correct overall |
-| Recall | Of all actually risky inputs, how many were caught |
-| F1 | Balance between catching risky inputs and avoiding noisy predictions |
-| ROC-AUC | How well confidence scores separate safe vs. risky cases across thresholds |
-| High-confidence missed scam check | Fails if an expected `FLAGGED` case is predicted `SAFE` with high confidence |
+| Metric | What it measures | Type | Best evaluated at |
+|---|---|---|---|
+| Accuracy | How often the final verdict matches the golden verdict | deterministic, scikit-learn | End-to-end |
+| Recall | Of all expected `FLAGGED` inputs, how many were caught | deterministic, scikit-learn | End-to-end |
+| F1 | Balance between catching risky inputs and avoiding noisy predictions | deterministic, scikit-learn | End-to-end |
+| ROC-AUC | How well confidence scores separate safe vs. risky cases across thresholds | deterministic, scikit-learn | End-to-end |
+| High-confidence missed scam check | Fails if an expected `FLAGGED` case is predicted `SAFE` with high confidence | deterministic, pytest | End-to-end |
+| Faithfulness | Whether the final reasoning is grounded in retrieved context | LLM judge, DeepEval | End-to-end and RAG generation |
+| Answer relevancy | Whether the answer addresses the user's safety question | LLM judge, DeepEval | End-to-end and RAG generation |
+| Hallucination | Whether the answer invents or contradicts facts | LLM judge, DeepEval | End-to-end |
+| Tool correctness | Whether the agent called expected tools such as `retrieve_docs` and `assess_risk` | deterministic, DeepEval | End-to-end trajectory |
+| Contextual relevancy | Whether retrieved chunks are relevant to the query | LLM judge, DeepEval | Component-level RAG |
+| Contextual precision | Whether retrieved chunks are useful rather than noisy | LLM judge, DeepEval | Component-level RAG |
+| Contextual recall | Whether retrieval surfaces enough context to support the expected answer | LLM judge, DeepEval | Component-level RAG |
+| G-Eval | Custom natural-language criteria, such as address-format/chain consistency | LLM judge, DeepEval | End-to-end or component-level |
 
-
-### Metric selection
-
-DeepEval provides many metrics, but this project uses a focused set aligned with the risk profile of the `transaction_safety` agent.
-
-| Metric | Why it is used |
-|---|---|
-| Faithfulness | Checks that reasoning is grounded in retrieved docs |
-| Hallucination | Flags invented or contradictory blockchain facts |
-| Answer relevancy | Ensures the output addresses the user's safety question |
-| Contextual relevancy | Checks whether retrieved RAG chunks are relevant to the query |
-| Contextual precision | Checks whether retrieved chunks are useful rather than noisy |
-| Contextual recall | Checks whether retrieval covers the expected answer |
-| G-Eval | Captures custom domain rules such as chain/address mismatch |
-
-
-**LLM-judge evals** — use DeepEval metrics to judge final reasoning, grounding, relevancy, hallucination risk, and custom domain criteria.
-
-
-| Metric | Tool | What it measures |
-|---|---|---|
-| Faithfulness | DeepEval | Is the reasoning grounded in the retrieved docs, or did the LLM hallucinate blockchain facts? |
-| Answer relevancy | DeepEval | Is the output actually about the question asked? |
-| Contextual relevancy | DeepEval | Are the retrieved RAG chunks relevant to the query? |
-| Contextual precision | DeepEval | Are the retrieved chunks useful and ranked well for the expected answer? |
-| Contextual recall | DeepEval | Did retrieval surface enough context to support the expected answer? |
-| Hallucination | DeepEval | Does the output invent or contradict facts? |
-| G-Eval (custom) | DeepEval | Your own criteria in plain English, scored by an LLM judge |
+The agent exposes a lightweight `tool_trace` for evaluation only. It records tool name, input parameters, and output so DeepEval can compare `tools_called` against `expected_tools` without adding trace data to the user-facing verdict.
 
 G-Eval example for this agent:
 ```python
@@ -305,6 +286,16 @@ pytest tests\transaction_safety\evaluation\component\rag\test_rag_quality.py -v 
 
 pytest tests\transaction_safety\evaluation\e2e\test_final_answer_quality.py -v ^
   --json-report --json-report-file=evaluation_results\deepeval\final_answer_e2e.json
+```
+
+### Batch eval with caching
+
+Most eval tests use `assert_test(...)` for simple pytest assertions. The RAG batch template uses DeepEval `evaluate(...)` directly to show cache and batch-result handling.
+
+This pattern is useful when the golden set grows large. If a long evaluation run fails near the end, cached metric results can avoid rerunning every successful case. DeepEval provides this through `CacheConfig`, so the framework does not need custom caching logic.
+
+```bash
+pytest tests/transaction_safety/evaluation/component/rag/test_rag_batch_evaluate.py -v
 ```
 
 ### Golden set

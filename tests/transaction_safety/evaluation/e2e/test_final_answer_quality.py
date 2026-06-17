@@ -11,8 +11,10 @@ AnswerRelevancyMetric = deepeval_metrics.AnswerRelevancyMetric
 FaithfulnessMetric = deepeval_metrics.FaithfulnessMetric
 GEval = deepeval_metrics.GEval
 HallucinationMetric = deepeval_metrics.HallucinationMetric
+ToolCorrectnessMetric = deepeval_metrics.ToolCorrectnessMetric
 LLMTestCase = deepeval_test_case.LLMTestCase
 SingleTurnParams = deepeval_test_case.SingleTurnParams
+ToolCall = deepeval_test_case.ToolCall
 
 from agents.transaction_safety.pydantic_models import AddressInput, FreeTextInput
 
@@ -54,6 +56,29 @@ def test_answer_relevancy_scam_detection(agent):
         actual_output=result.reasoning if result else "",
     )
     assert_test(tc, [AnswerRelevancyMetric(threshold=0.5)])
+
+
+def test_tool_correctness_scam_detection(agent):
+    text = "Someone sent me a link to claim free USDC by approving a contract. Should I do it?"
+    result = run_agent(agent, FreeTextInput(text=text))
+    tools_called = [
+        ToolCall(
+            name=tool["name"],
+            input_parameters=tool["input"],
+            output=tool["output"],
+        )
+        for tool in agent.tool_trace
+    ]
+    tc = LLMTestCase(
+        input=text,
+        actual_output=result.reasoning,
+        tools_called=tools_called,
+        expected_tools=[
+            ToolCall(name="retrieve_docs"),
+            ToolCall(name="assess_risk"),
+        ],
+    )
+    assert_test(tc, [ToolCorrectnessMetric(threshold=1.0)])
 
 
 def test_format_chain_consistency(agent):

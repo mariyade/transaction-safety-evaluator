@@ -1,3 +1,5 @@
+import json
+
 from agents.transaction_safety.config import MODEL, N_RETRY
 from agents.transaction_safety.guardrails import (
     CryptoSecretsGuard,
@@ -41,10 +43,15 @@ class TransactionSafetyAgent:
         self._hallucination_guard = HallucinationGuard()
         self._grounding_context: list[str] = []
         self._called_tools: set[str] = set()
+        self._tool_trace: list[dict] = []
 
     @property
     def system_prompt(self) -> str:
         return SYSTEM_PROMPT
+
+    @property
+    def tool_trace(self) -> list[dict]:
+        return list(self._tool_trace)
 
     def _escalate(self, reason: str) -> AddressValidationResult:
         return AddressValidationResult(
@@ -81,6 +88,13 @@ class TransactionSafetyAgent:
                 logger.info("tool call — %s", tool_call.name)
                 self._called_tools.add(tool_call.name)
                 tool_result = execute_tool_call(tool_call)
+                self._tool_trace.append(
+                    {
+                        "name": tool_call.name,
+                        "input": json.loads(tool_call.arguments),
+                        "output": tool_result,
+                    }
+                )
                 if tool_call.name in REQUIRED_TOOLS:
                     self._grounding_context.append(tool_result)
                 messages.append(
@@ -106,6 +120,7 @@ class TransactionSafetyAgent:
         # Reset per-run state before tool calls start.
         self._grounding_context = []
         self._called_tools = set()
+        self._tool_trace = []
 
         # Block unsafe input before any LLM call.
         guards = (
