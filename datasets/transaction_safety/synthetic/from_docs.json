@@ -1,0 +1,38 @@
+[
+  {
+    "input": "Is it safe to send ERC-20 USDC directly to a Solana address, or is a bridge required?",
+    "expected_output": "No \u2014 sending ERC-20 USDC directly to a Solana address will result in permanent loss of funds. A bridge is required because Solana addresses are not EVM-compatible and cannot receive ERC-20 tokens directly.",
+    "context": [
+      "Blockchain Address Formats\n\nEthereum and EVM-Compatible Chains (Ethereum, Base, Polygon, Arbitrum, Optimism):\n- Format: 0x followed by 40 hexadecimal characters\n- Example: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48\n- Total length: 42 characters including the 0x prefix\n- Case-insensitive, but EIP-55 checksummed mixed-case versions are preferred\n- All EVM chains share the same address format \u2014 the same address can exist on Ethereum and Base simultaneously\n\nSolana:\n- Format: Base58-encoded Ed25519 public key\n- Example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\n- Length: typically 32-44 characters\n- Does NOT start with 0x\n- Cannot receive ERC-20 tokens directly \u2014 requires a bridge\n\nBitcoin:\n- Legacy format starts with 1 (e.g. 1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf)\n- P2SH format starts with 3\n- Bech32 format starts with bc1\n- Bitcoin does not support USDC or any EVM token\n\nCRITICAL SAFETY RULES:\n- Sending ERC-20 USDC directly to a Solana address will result in PERMANENT LOSS OF FUNDS.\n- Sending SPL USDC to an Ethereum address will result in PERMANENT LOSS OF FUNDS.\n- Cross-chain transfers always require a bridge protocol \u2014 you cannot directly send between incompatible chains.\n- Never type addresses manually \u2014 always copy and paste and verify at least the first and last 6 characters.\n- Clipboard hijacking malware can silently replace a copied address with an attacker's address. Always verify on-screen.\n"
+    ],
+    "additional_metadata": {
+      "evolutions": [
+        "Constrained"
+      ],
+      "synthetic_input_quality": 1.0,
+      "context_source_files": [
+        "/Users/mdani/Documents/ai_evaluation_framework/data/docs/address_formats.txt"
+      ],
+      "used_source_files": []
+    },
+    "source_file": "/Users/mdani/Documents/ai_evaluation_framework/data/docs/address_formats.txt"
+  },
+  {
+    "input": "How can I tell the difference between Ethereum/EVM, Solana, and Bitcoin address formats so I can safely send USDC on Ethereum?",
+    "expected_output": "Ethereum/EVM addresses start with `0x` and are 42 characters long total (`0x` + 40 hex characters). Solana addresses are Base58, typically 32\u201344 characters, and do not start with `0x`. Bitcoin addresses usually start with `1`, `3`, or `bc1`. To safely send USDC on Ethereum, only send to an EVM-format `0x...` address, since sending ERC-20 USDC to Solana or Bitcoin-style addresses can cause permanent loss of funds.",
+    "context": [
+      "Blockchain Address Formats\n\nEthereum and EVM-Compatible Chains (Ethereum, Base, Polygon, Arbitrum, Optimism):\n- Format: 0x followed by 40 hexadecimal characters\n- Example: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48\n- Total length: 42 characters including the 0x prefix\n- Case-insensitive, but EIP-55 checksummed mixed-case versions are preferred\n- All EVM chains share the same address format \u2014 the same address can exist on Ethereum and Base simultaneously\n\nSolana:\n- Format: Base58-encoded Ed25519 public key\n- Example: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v\n- Length: typically 32-44 characters\n- Does NOT start with 0x\n- Cannot receive ERC-20 tokens directly \u2014 requires a bridge\n\nBitcoin:\n- Legacy format starts with 1 (e.g. 1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf)\n- P2SH format starts with 3\n- Bech32 format starts with bc1\n- Bitcoin does not support USDC or any EVM token\n\nCRITICAL SAFETY RULES:\n- Sending ERC-20 USDC directly to a Solana address will result in PERMANENT LOSS OF FUNDS.\n- Sending SPL USDC to an Ethereum address will result in PERMANENT LOSS OF FUNDS.\n- Cross-chain transfers always require a bridge protocol \u2014 you cannot directly send between incompatible chains.\n- Never type addresses manually \u2014 always copy and paste and verify at least the first and last 6 characters.\n- Clipboard hijacking malware can silently replace a copied address with an attacker's address. Always verify on-screen.\n"
+    ],
+    "additional_metadata": {
+      "evolutions": [
+        "Comparative"
+      ],
+      "synthetic_input_quality": 0.95,
+      "context_source_files": [
+        "/Users/mdani/Documents/ai_evaluation_framework/data/docs/address_formats.txt"
+      ],
+      "used_source_files": []
+    },
+    "source_file": "/Users/mdani/Documents/ai_evaluation_framework/data/docs/address_formats.txt"
+  }
+]

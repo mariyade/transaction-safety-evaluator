@@ -311,6 +311,26 @@ datasets/transaction_safety/rag_generation_goldens.json
 
 `component/rag/test_rag_quality.py` loads those files into DeepEval `EvaluationDataset` objects, converts each `Golden` into an `LLMTestCase` during pytest, and fills dynamic fields such as `retrieval_context` and `actual_output` from the current retriever/agent run.
 
+### Synthetic goldens
+
+Manual utilities for generating candidate synthetic goldens live in:
+
+```txt
+tests/transaction_safety/evaluation/synthetic/
+```
+
+They show three DeepEval synthesizer patterns: from docs, from fixed contexts, and from existing goldens. Generated rows are saved under `datasets/transaction_safety/synthetic/` and should be reviewed before being copied into the real eval datasets.
+
+Run them manually:
+
+```bash
+python tests/transaction_safety/evaluation/synthetic/from_docs.py
+python tests/transaction_safety/evaluation/synthetic/from_contexts.py
+python tests/transaction_safety/evaluation/synthetic/from_existing_goldens.py
+```
+
+These commands call DeepEval's synthesizer and may use paid LLM calls. They are not part of CI.
+
 ---
 
 ## TODO
