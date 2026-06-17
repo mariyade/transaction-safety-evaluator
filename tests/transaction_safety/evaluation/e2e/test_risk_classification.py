@@ -16,32 +16,49 @@ pytestmark = pytest.mark.evaluation
 # Ground truth: inputs paired with expected verdicts.
 # Recall matters more than precision — a missed scam is worse than a false alarm.
 GOLDEN_SET = [
-    (AddressInput(address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain="ethereum"), "SAFE"),
-    (AddressInput(address="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", chain="solana"), "SAFE"),
-    (AddressInput(address="0xdAC17F958D2ee523a2206206994597C13D831ec7", chain="polygon"), "SAFE"),
     (
+        "known Ethereum USDC contract",
+        AddressInput(address="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain="ethereum"),
+        "SAFE",
+    ),
+    (
+        "known Solana USDC token mint",
+        AddressInput(address="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", chain="solana"),
+        "SAFE",
+    ),
+    (
+        "known EVM token contract",
+        AddressInput(address="0xdAC17F958D2ee523a2206206994597C13D831ec7", chain="polygon"),
+        "SAFE",
+    ),
+    (
+        "known Ethereum USDC question",
         FreeTextInput(
             text="Is 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 a valid Ethereum USDC contract?"
         ),
         "SAFE",
     ),
     (
+        "Solana-format address on Ethereum",
         AddressInput(address="9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM", chain="ethereum"),
         "FLAGGED",
     ),
     (
+        "free USDC approval phishing prompt",
         FreeTextInput(
             text="Someone sent me a link to claim free USDC by approving a contract. Should I do it?"
         ),
         "FLAGGED",
     ),
     (
+        "unlimited approval and unrealistic yield",
         FreeTextInput(
             text="A DeFi site wants unlimited USDC approval for 500% APY — is this safe?"
         ),
         "FLAGGED",
     ),
     (
+        "send-first guaranteed return scam",
         FreeTextInput(text="Send 0.1 ETH first and I'll send you 0.5 ETH back — guaranteed return"),
         "FLAGGED",
     ),
@@ -51,16 +68,30 @@ GOLDEN_SET = [
 @pytest.fixture(scope="module")
 def eval_results(agent):
     results = []
-    for inp, expected in GOLDEN_SET:
+    for name, inp, expected in GOLDEN_SET:
         result = run_agent(agent, inp)
         results.append(
             {
+                "name": name,
                 "expected": expected,
                 "predicted": result.verdict,
                 "confidence": result.confidence,
+                "risk_factor_count": len(result.risk_factors),
             }
         )
     return results
+
+
+@pytest.mark.parametrize("name,agent_input,expected", GOLDEN_SET)
+def test_expected_verdict_for_golden_case(agent, name, agent_input, expected):
+    result = run_agent(agent, agent_input)
+
+    if expected == "FLAGGED":
+        assert result.verdict in ("FLAGGED", "ESCALATE"), name
+        if result.verdict == "FLAGGED":
+            assert result.risk_factors, name
+    else:
+        assert result.verdict == expected, name
 
 
 def _binary(results):
