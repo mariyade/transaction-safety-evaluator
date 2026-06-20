@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  # 1. Integration tests
   integration:
-    name: Integration Tests
+    name: Integration Smoke Test
     runs-on: ubuntu-latest
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -25,7 +24,7 @@ jobs:
       - name: Download spaCy model
         run: python -m spacy download en_core_web_sm
 
-      - name: Run integration tests
+      - name: Run API-backed integration smoke test
         run: |
           mkdir -p evaluation_results
           pytest -m integration \
@@ -39,9 +38,8 @@ jobs:
           name: integration-report-${{ github.run_id }}
           path: evaluation_results/integration.json
 
-  # 2. End-to-end risk classification evaluation
-  risk-classification:
-    name: E2E Risk Classification Evaluation
+  e2e-verdict-metrics:
+    name: E2E Verdict Metrics
     runs-on: ubuntu-latest
     needs: integration
     env:
@@ -61,21 +59,20 @@ jobs:
       - name: Download spaCy model
         run: python -m spacy download en_core_web_sm
 
-      - name: Run E2E risk classification evaluation
+      - name: Run E2E verdict metric evaluation
         run: |
           mkdir -p evaluation_results
           pytest tests/transaction_safety/evaluation/e2e/test_risk_classification.py \
-            --json-report --json-report-file=evaluation_results/risk_classification.json \
+            --json-report --json-report-file=evaluation_results/e2e_verdict_metrics.json \
             -v --tb=short
 
-      - name: Upload risk-classification report
+      - name: Upload E2E verdict metrics report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: risk-classification-report-${{ github.run_id }}
-          path: evaluation_results/risk_classification.json
+          name: e2e-verdict-metrics-report-${{ github.run_id }}
+          path: evaluation_results/e2e_verdict_metrics.json
 
-  # 3. Component-level RAG evals
   rag-component:
     name: RAG Component Evals
     runs-on: ubuntu-latest
@@ -111,7 +108,41 @@ jobs:
           name: rag-component-report-${{ github.run_id }}
           path: evaluation_results/rag_component.json
 
-  # 4. DeepEval LLM-judge quality evals
+  rag-batch-cache:
+    name: RAG Batch Evaluate Template
+    runs-on: ubuntu-latest
+    needs: integration
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download spaCy model
+        run: python -m spacy download en_core_web_sm
+
+      - name: Run cached RAG batch eval template
+        run: |
+          mkdir -p evaluation_results
+          pytest tests/transaction_safety/evaluation/component/rag/test_rag_batch_evaluate.py \
+            --json-report --json-report-file=evaluation_results/rag_batch_evaluate.json \
+            -v --tb=short
+
+      - name: Upload RAG batch report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-batch-report-${{ github.run_id }}
+          path: evaluation_results/rag_batch_evaluate.json
+
   deepeval-quality:
     name: DeepEval Quality Evals
     runs-on: ubuntu-latest
@@ -135,12 +166,14 @@ jobs:
 
       - name: Run deepeval quality tests
         run: |
-          deepeval test run \
-            tests/transaction_safety/evaluation/e2e/test_final_answer_quality.py
+          mkdir -p evaluation_results
+          pytest tests/transaction_safety/evaluation/e2e/test_final_answer_quality.py \
+            --json-report --json-report-file=evaluation_results/deepeval_quality.json \
+            -v --tb=short
 
       - name: Upload deepeval report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: deepeval-report-${{ github.run_id }}
-          path: evaluation_results/
+          path: evaluation_results/deepeval_quality.json

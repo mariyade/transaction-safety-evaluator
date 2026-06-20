@@ -98,9 +98,11 @@ ai_evaluation_framework/
 │           ├── e2e/
 │           │   ├── test_final_answer_quality.py
 │           │   └── test_risk_classification.py
-│           └── component/
-│               └── rag/
-│                   └── test_rag_quality.py
+│           ├── component/
+│           │   └── rag/
+│           │       ├── test_rag_quality.py
+│           │       └── test_rag_batch_evaluate.py
+│           └── synthetic/         # manual DeepEval synthetic golden generators
 ├── README.md
 ├── pytest.ini
 └── requirements.txt
@@ -149,7 +151,7 @@ Tests are split by scope, cost, and whether they exercise the whole agent or a s
 |---|---|---|---|---|---|
 | Unit tests | `tests/transaction_safety/unit/` | No | Fast | Unit + guardrail components | Pydantic models, structured output validation, retry parsing, tool routing, prompt building, prompt injection, PII, private keys/seed phrases, hallucination guard, verdict guard |
 | Integration smoke test | `tests/transaction_safety/integration/` | Yes | Slow | Component wiring | One minimal `TransactionSafetyAgent.run()` check that verifies the real agent path can return a structured result |
-| End-to-end evaluation | `tests/transaction_safety/evaluation/e2e/` | Yes | Slow | Full-agent quality evaluation | Golden-case verdict checks, risk classification metrics, and LLM-as-a-judge scoring over full agent outputs |
+| End-to-end evaluation | `tests/transaction_safety/evaluation/e2e/` | Yes | Slow | Full-agent quality evaluation | Golden-case verdict checks, verdict metrics, and LLM-as-a-judge scoring over full agent outputs |
 | Component-level RAG evaluation | `tests/transaction_safety/evaluation/component/rag/` | Yes | Slow | RAG component evaluation | Retrieval relevance, contextual precision/recall, and RAG answer grounding/relevancy |
 
 ### Commands
@@ -350,7 +352,7 @@ These commands call DeepEval's synthesizer and may use paid LLM calls. They are 
 ## TODO
 
 - Expand the golden set in `e2e/test_risk_classification.py` as the agent handles more edge cases
-- Add confusion matrix logging to the risk classification eval output
+- Add confusion matrix logging to the E2E verdict metrics output
 - Add Phoenix tracing with spans for `agent.run()`, retrieval, tool calls, LLM calls, and guardrail checks
 - Record optional `token_cost` and `completion_time` metadata once the LLM adapter exposes usage and timing data
 - Add simple prompt/model metadata to eval reports, such as `agent`, `model`, and `prompt_version`, before considering DeepEval prompt management
