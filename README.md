@@ -4,6 +4,20 @@ A transaction-safety agent that implements AI testing and evaluation approaches 
 
 <img src="docs/guardrails_pipeline.png" alt="Guardrails Pipeline" width="900">
 
+## Table of contents
+
+- [Background](#background)
+- [Technology](#technology)
+- [Testing approach](#testing-approach)
+- [Project structure](#project-structure)
+- [Setup](#setup)
+- [Configuration](#configuration)
+- [Running the agent](#running-the-agent)
+- [Test strategy](#test-strategy)
+- [Runtime guardrails](#runtime-guardrails)
+- [Evaluation](#evaluation)
+- [TODO](#todo)
+
 ---
 
 ### Background
